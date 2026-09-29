@@ -33,7 +33,7 @@
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,"Amiri",sans-serif;
   --serif:"Instrument Serif","Iowan Old Style","Palatino Linotype",Georgia,serif;
   --ar:"Amiri","Geeza Pro","Traditional Arabic","Noto Naskh Arabic",serif;
-  --r:18px;
+  --r:20px;
   --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
   --ease:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.34,1.4,.5,1);
   color-scheme:light;
@@ -842,6 +842,85 @@ dialog.sheet[open]{animation:up .38s var(--ease)}
 .adv summary::after{content:"+";font:400 1.4rem/1 var(--serif);color:var(--muted);transition:transform .25s var(--ease)}
 .adv[open] summary::after{transform:rotate(45deg)}
 .adv p{margin:0 0 14px;line-height:1.55;color:var(--ink-2)}
+
+/* ---------- Zia · Alphabet ---------- */
+.lvls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:16px}
+.lvls button{display:flex;flex-direction:column;gap:3px;padding:10px 10px 11px;border-radius:14px;background:var(--surface);text-align:left;min-height:0}
+.lvls button b{font-size:.8125rem;font-weight:650}
+.lvls button small{font-size:.6875rem;line-height:1.3;color:var(--muted)}
+.lvls button[aria-pressed="true"]{background:var(--gold-soft);box-shadow:inset 0 0 0 1.5px var(--gold)}
+.lvls button:disabled{opacity:.45}
+.lgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:16px}
+.ltile{aspect-ratio:1;border-radius:12px;background:var(--surface);display:grid;place-items:center;min-height:0;padding:0;font-family:var(--ar);font-size:1.55rem;line-height:1;color:var(--muted);transition:background .25s,color .25s,transform .15s var(--spring)}
+.ltile span{transform:translateY(-.08em)}
+.ltile.s1{color:var(--ink-2);box-shadow:inset 0 -3px 0 color-mix(in srgb,var(--mint) 35%,transparent)}
+.ltile.s2{color:var(--ink);box-shadow:inset 0 -3px 0 var(--mint)}
+.ltile.s3{background:var(--mint-soft);color:var(--mint)}
+.ltile.sel{box-shadow:inset 0 0 0 2px var(--gold)}
+.ltile.off{opacity:.25}
+.ltile:active{transform:scale(.92)}
+.lcard{margin-top:14px;padding:16px;border-radius:var(--r);background:var(--surface)}
+.lbig{margin:-6px 0 0;font:400 3.6rem/1.7 var(--ar);color:var(--gold);min-width:1.2em;text-align:center}
+.lforms{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:14px;direction:rtl}
+.lforms div,.lsyl button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;border-radius:12px;background:var(--raise)}
+.lforms span,.lsyl span{font:400 1.8rem/1.4 var(--ar)}
+.lforms small,.lsyl small{font-size:.6875rem;color:var(--muted);direction:ltr}
+.lsyl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px;direction:rtl}
+.lsyl button{min-height:0}
+.ltip{min-height:1.5em;margin:10px 0 0;text-align:left;line-height:1.5}
+.ltip .ar{font-family:var(--ar)}
+
+/* ---------- Zia · Modules ---------- */
+.zhero{display:flex;align-items:center;gap:22px;margin-top:18px}
+.zring{position:relative;width:132px;height:132px;flex:none}
+.zring svg{width:100%;height:100%;display:block}
+.zring>div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.zring b{font:400 2.4rem/1 var(--serif)}.zring b small{font-size:1.1rem;color:var(--muted)}
+.zring span{font-size:.6875rem;font-weight:600;color:var(--muted);margin-top:4px;max-width:90px;line-height:1.25}
+.zside{flex:1;min-width:0}
+.zph{flex:1;display:flex;flex-direction:column;gap:6px}
+.zph div{display:flex;justify-content:space-between;align-items:baseline;padding:8px 12px;border-radius:12px;background:var(--surface);opacity:.55}
+.zph div.cur{opacity:1;box-shadow:inset 0 0 0 1.5px var(--mint)}.zph div.ok{opacity:.8}
+.zph b{font:400 1.15rem var(--serif)}.zph span{font-size:.6875rem;color:var(--muted)}
+.zdays{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;margin-top:16px}
+.zdays i{aspect-ratio:1;border-radius:50%;background:var(--raise)}
+.zdays i.half{background:color-mix(in srgb,var(--gold) 40%,var(--raise))}.zdays i.on{background:var(--gold)}
+.zdays i.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--gold)}
+.check.off{opacity:.5}
+.zlbl{display:block;margin:14px 0 6px;font-size:.8125rem;font-weight:600;color:var(--ink-2)}
+textarea{width:100%;border:0;border-radius:14px;background:var(--surface);color:var(--ink);padding:12px 14px;font:inherit;resize:vertical}
+textarea:focus{outline:2px solid var(--gold)}
+.hstory{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+.hstory button{aspect-ratio:1;border-radius:50%;background:var(--surface);min-height:0;padding:0;font-size:.6875rem;font-weight:600;color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--orbit)}
+.hstory button[aria-pressed="true"]{background:linear-gradient(135deg,var(--rose),var(--gold));color:var(--surface);box-shadow:none}
+.hstory button:disabled{opacity:.35}
+.hchart{display:block;width:100%;height:auto;margin-top:12px;overflow:visible}
+.bpal{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.bp{border-radius:16px;background:var(--surface);overflow:hidden}
+.bp.lock{opacity:.5}
+.bph{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;text-align:left;min-height:54px}
+.bph i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:.8125rem;font-weight:700;background:var(--raise);color:var(--muted)}
+.bph i svg{width:14px;height:14px;stroke:var(--surface);stroke-width:3;fill:none}
+.bp.ok .bph i{background:var(--mint)}
+.bp.open .bph i{background:var(--gold);color:var(--gold-ink)}
+.bph b{flex:1;font-weight:600}
+.bpb{padding:0 16px 16px}
+.bpb ul{margin:0 0 10px;padding-left:1.1em;line-height:1.55}
+.bpb textarea{background:var(--raise);margin-top:10px}
+.bps{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:var(--gold-soft);font:400 1.05rem/1.4 var(--serif)}
+.lvls{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lgrid.words{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ltile.lw{aspect-ratio:auto;padding:10px 4px;font-size:1.7rem}
+.ltip4{margin:12px 0 0;padding:10px 12px;border-radius:12px;background:var(--surface);line-height:1.6}
+/* Détails : récompenses en grains de grenade et pétales, lucioles, croissant */
+.fx i{width:7px;height:9px;left:-3.5px;top:-4.5px;border-radius:50% 50% 46% 46%/58% 58% 42% 42%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.7) 0 16%,transparent 18%),#F0566F}
+.fx i:nth-child(3n){background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.7) 0 16%,transparent 18%),#74A7FF}
+.fx i:nth-child(4n){width:9px;height:6px;border-radius:60% 0 60% 0;background:#FF9A86}
+.gmoon{fill:var(--gold-hi);opacity:.8}
+@media (prefers-color-scheme: light){.gmoon{display:none}}
+.flies circle{fill:var(--gold-hi);filter:drop-shadow(0 0 3px var(--gold));animation:fly 9s ease-in-out infinite}
+@keyframes fly{0%,100%{transform:translate(0,0);opacity:.2}25%{opacity:.9}50%{transform:translate(8px,-10px);opacity:.5}75%{transform:translate(-6px,-4px);opacity:1}}
+@media (prefers-reduced-motion: reduce){.flies circle{animation:none;opacity:.7}}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }

@@ -305,7 +305,7 @@ function defaults() {
     checks: {}, notes: {}, words: {}, hideFatiha: false, tajwid: { done: 0, total: 0 }, sourates: {},
     days: {},
     shifts: [], payslips: {},
-    blocks: {}, seen: {}, money: defaultMoney(), faith: defaultFaith(), unlocks: {}, biz: { projects: [] }, body: defaultBody(), cycle: defaultCycle(), nour: { log: {}, seen: '' }, zc: null, flux: { seen: {}, saved: [], day: { d: '', n: 0, q: 0, r: 0 }, used: false },
+    blocks: {}, seen: {}, money: defaultMoney(), faith: defaultFaith(), unlocks: {}, biz: { projects: [] }, body: defaultBody(), cycle: defaultCycle(), z: defaultZ(), nour: { log: {}, seen: '' }, zc: null, flux: { seen: {}, saved: [], day: { d: '', n: 0, q: 0, r: 0 }, used: false },
     settings: defaultSettings(),
     ideas: [], lastExport: null, createdAt: Date.now(), updatedAt: 0
   };
@@ -343,6 +343,8 @@ function normalize(s) {
   out.cycle = normalizeCycle(s && s.cycle);
   out.garden = s && s.garden && typeof s.garden === 'object' && s.garden.st ? s.garden : undefined;
   out.faith.homeSeen = !!(s && s.faith && s.faith.homeSeen);
+  out.alif = s && s.alif && typeof s.alif === 'object' ? s.alif : { 1: {}, 2: {}, 3: {}, 4: {} };
+  out.z = normalizeZ(s && s.z);
   return out;
 }
 let dbp = null;
@@ -514,6 +516,9 @@ const GLYPH = {
   flux: '<path d="M12 3c.7 4.3 1.9 5.5 6.2 6.2-4.3.7-5.5 1.9-6.2 6.2-.7-4.3-1.9-5.5-6.2-6.2C10.1 8.5 11.3 7.3 12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 19.5h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   orbite: '<path d="M12 20.5V11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 12.5C12 8.6 9.4 6 5 6c0 4.2 2.8 6.5 7 6.5zM12 15c0-3.3 2.4-6 6.6-6 0 3.7-2.6 6-6.6 6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.5 20.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  reset: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M19.5 4.5v3.8h-3.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9.2l.8 1.9 2 .2-1.5 1.3.5 2-1.8-1.1-1.8 1.1.5-2-1.5-1.3 2-.2z" fill="currentColor"/>',
+  hizya: '<rect x="3.5" y="6.5" width="12" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15.5 10.5l5-3v9l-5-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+  appr: '<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
   cycle: '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.2 2.6"/><path d="M12 7.5c1.8 2.3 2.8 3.9 2.8 5.2a2.8 2.8 0 0 1-5.6 0c0-1.3 1-2.9 2.8-5.2z" fill="currentColor"/>'
 };
 /* Géométrie : 0° = en haut, sens des aiguilles d'une montre */
@@ -533,9 +538,14 @@ function tween(dur, fn, done) {
 
 const COACH = {
   orbite: ['Ton jardin', 'Chaque plante est un module. Elle passe de graine à pousse, arbuste, arbre en fleurs, puis grenadier, au rythme de ce que tu y fais. Touche une plante pour y aller, touche la source au centre pour ouvrir le Flux. Partout dans l\'app, le bouton rond en bas ouvre la roue des modules : touche-le, ou appuie et glisse vers un module.'],
+  corpsz: ['Ton corps, à la maison', 'Trois séances par semaine, sans matériel. Trois paliers : Éveil, puis Élan dès 12 séances, puis Rayonne dès 30. Coche chaque exercice, puis « Séance terminée ». Pendant tes règles, la séance douce compte tout autant.'],
+  routinez: ['Ton quart d\'heure du soir', 'Coche chaque étape ce soir. Toutes cochées, la soirée est bouclée et ta série continue. Tu peux lancer le minuteur et modifier les étapes en bas.'],
+  resetz: ['Ton reset du dimanche', 'Une demi-journée, le dimanche après-midi, pour ton esprit, ton corps, ta foi, ta maison et tes rituels. Chaque case allume de la lumière ; tout coché, c\'est un reset complet. Termine par ton bilan.'],
+  hizyaz: ['Hizya', 'Note chaque vidéo publiée (objectif 3 par semaine), coche tes jours de story, mets à jour tes abonnés quand tu veux pour voir ta courbe vers 2 000, et avance ton produit étape par étape.'],
+  apprz: ['Trente minutes par jour', 'Deux parcours : lire l\'arabe, et le business selon les règles islamiques. Chacun avance par paliers : le suivant s\'ouvre quand tu as appliqué le précédent.'],
   cycle: ['Ton cycle, et ta foi avec', 'Note le début et la fin de tes règles : tes prières se mettent en pause toutes seules, sans toucher à ta série ni à tes 90 %. Pendant ce temps, l\'app te propose des adorations toujours possibles. Tes données restent sur ce téléphone. Ce suivi n\'est pas une méthode de contraception.'],
   parcours: ['12 mois pour te former au business', 'Fais glisser l\'anneau ou touche une lune pour choisir un mois. Chaque mois se fait dans l\'ordre :', ['Écoute et lis les ressources', 'Coche les acquis quand tu les maîtrises', 'Fais l\'exercice pratique', 'Note ce que tu retiens']],
-  arabe: ['Comprendre le sens de ce que tu récites', 'Quelques minutes de quiz par jour suffisent. Chaque étoile de la constellation est un mot : elle brille quand il est maîtrisé (3 bonnes réponses).'],
+  arabe: ['Apprendre à lire, palier après palier', 'Palier 1, les 28 lettres. Palier 2, leurs formes dans le mot. Palier 3, les voyelles. Palier 4, lire des mots. Palier 5, leur sens. Touche une lettre pour voir ses formes et l\'écouter, puis entraîne-toi au quiz : une lettre est acquise après 3 bonnes réponses, et chaque palier s\'ouvre quand le précédent est acquis.'],
   routine: ['Ta 1 h 30 quotidienne', 'L\'anneau est découpé en 4 blocs. Touche un bloc quand il est fait : les 4 faits, la journée est validée et ta série continue.'],
   budget: ['Ta méthode', 'Elle tient en 3 temps :', ['Tu te paies d\'abord : ton épargne part en début de mois', 'Tes charges fixes sont mises de côté', 'Le reste est à toi, avec un budget par jour qui s\'ajuste à chaque dépense. Les enveloppes freinent les catégories où ça file vite.']],
   foi: ['Ta régularité', 'Touche chaque prière sur le chemin du soleil pour dire comment tu l\'as faite : chez toi à l\'heure, c\'est le maximum. Coche tes autres habitudes en dessous. Pendant tes règles, les prières se mettent en pause toutes seules : ta série et tes 90 % ne bougent pas.'],
@@ -767,10 +777,15 @@ function constellation() {
   }).join('');
 }
 function vArabe() {
+  const sw = `<div class="seg" role="group" aria-label="Arabe" style="margin-top:14px"><button data-arv="lettres" aria-pressed="${AV === 'lettres'}"><span class="dot"></span>Lire les lettres</button><button data-arv="mots" aria-pressed="${AV === 'mots'}"><span class="dot"></span>${alOpen(5) ? 'Le sens des mots' : 'Le sens · verrouillé'}</button></div>`;
+  if (AV !== 'mots' || !alOpen(5)) return `${foiTop('arabe')}${sw.replace('data-arv="mots"', alOpen(5) ? 'data-arv="mots"' : 'data-arv="mots" disabled')}${alOpen(5) ? '' : '<p class="hint" style="text-align:center">Palier 5, le sens des mots : il s\'ouvre quand tu sais lire 20 mots.</p>'}${vLettres()}`;
+  return vMots(sw);
+}
+function vMots(sw) {
   const t = S.tajwid, cq = currentQuarter(), nS = SOURATES.filter(s => S.sourates[s[1]]).length;
   const fat = FATIHA.map((v, vi) => `<div class="verse"><span class="vn">Verset ${vi + 1}</span><div class="words">${v.map(w => `<button class="w" data-fw><span class="a" lang="ar">${w[0]}</span><span class="f">${esc(w[1])}</span></button>`).join('')}</div></div>`).join('');
   const steps = AR_STEPS.map((s, si) => `<div class="qtr ${si === cq ? 'cur' : ''}" style="margin-top:${si ? 18 : 0}px"><p class="eyebrow" ${si === cq ? 'style="color:var(--gold)"' : ''}>${si === cq ? 'Maintenant · ' : ''}${s.t}</p><div class="checks">${s.items.map((it, i) => checkbox(`ar${si}-${i}`, esc(it))).join('')}</div></div>`).join('');
-  return `${foiTop('arabe')}
+  return `${foiTop('arabe')}${sw}
   <div class="constel">
     <svg viewBox="-112 -104 224 208" id="constel" aria-label="${wordsKnown()} mots maîtrisés sur ${WORDS.length}">${constellation()}</svg>
     <p class="constel-tip" id="ctip"></p>
@@ -1676,7 +1691,7 @@ function openInvestSetup() {
 
 /* ----- Onglet Foi : habitudes ----- */
 function foiTop(view) {
-  return `${pageHead('Foi', view === 'arabe' ? 'Le sens de ce que tu lis, mot après mot.' : 'La régularité avant tout. Chaque prière à l\'heure compte.', view === 'arabe' ? 'arabe' : 'foi')}
+  return `${pageHead('Foi', view === 'arabe' ? 'Apprendre à lire, puis comprendre.' : 'La régularité avant tout. Chaque prière à l\'heure compte.', view === 'arabe' ? 'arabe' : 'foi')}
   <div class="seg" role="group" aria-label="Section" style="margin-top:20px">
     <button data-fview="habitudes" aria-pressed="${view === 'habitudes'}"><span class="dot"></span>Habitudes</button>
     <button data-fview="arabe" aria-pressed="${view === 'arabe'}"><span class="dot"></span>Arabe & Coran</button>
@@ -2501,7 +2516,7 @@ const GEMS = [
   ['Profite de ta jeunesse avant ta vieillesse, de ta santé avant ta maladie, de ton temps libre avant ton occupation.', 'Hakim'],
   ['Allah aime, lorsque l\'un de vous accomplit une chose, qu\'il l\'accomplisse avec excellence.', 'Bayhaqi'],
   ['Le croyant fort est meilleur et plus aimé d\'Allah que le croyant faible.', 'Muslim'],
-  ['Chaque fois que tu tiens, tu rends la fois suivante plus facile.', 'Sayko']
+  ['Ce qui est planté avec patience finit par donner des fruits.', 'Ton jardin']
 ];
 const NOTES5 = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
 let lastPt = null;
@@ -2694,7 +2709,7 @@ const FX_HADITH = [
   ['h7', 'Les actes les plus aimés d\'Allah sont ceux qui sont les plus réguliers, même s\'ils sont peu nombreux.', 'Bukhari 6464, Muslim 783', 'La constance bat l\'intensité. Tout le principe de cette app.'],
   ['h8', 'Le croyant fort est meilleur et plus aimé d\'Allah que le croyant faible, et en chacun il y a du bien. Attache-toi à ce qui t\'est profitable, demande l\'aide d\'Allah et ne baisse pas les bras.', 'Muslim 2664', 'Trois consignes : viser l\'utile, s\'appuyer sur Allah, ne pas abandonner. La suite du hadith met en garde contre le « si seulement j\'avais… ».'],
   ['h9', 'Allah ne regarde ni vos corps ni vos apparences, mais Il regarde vos cœurs et vos actes.', 'Muslim 2564', 'Le physique se travaille, mais ce qui est regardé, c\'est l\'intérieur et ce que tu en fais.'],
-  ['h10', 'Ton sourire à ton frère est une aumône.', 'Tirmidhi 1956', 'L\'aumône la moins chère et la plus rapide. En gare, avec les voyageurs, elle est à portée de main toute la journée.'],
+  ['h10', 'Ton sourire à ton frère est une aumône.', 'Tirmidhi 1956', 'L\'aumône la moins chère et la plus rapide. Dans un commentaire, une story, une rencontre : elle est à portée de main toute la journée.'],
   ['h11', 'Le commerçant véridique et digne de confiance sera avec les prophètes, les véridiques et les martyrs.', 'Tirmidhi 1209', 'Le rang le plus élevé promis à un commerçant, à deux conditions : dire vrai et respecter ce qu\'on lui confie.'],
   ['h12', 'Celui qui nous trompe n\'est pas des nôtres.', 'Muslim 102', 'Dit au marché, devant un tas de nourriture dont le dessus était sec et le dessous mouillé. Cacher un défaut, c\'est tromper.'],
   ['h13', 'Qu\'Allah fasse miséricorde à un homme facile lorsqu\'il vend, lorsqu\'il achète et lorsqu\'il réclame son dû.', 'Bukhari 2076', 'La souplesse en affaires attire la miséricorde. Être dur sur les principes, facile dans la manière.'],
@@ -2707,7 +2722,7 @@ const FX_HADITH = [
   ['h20', 'Le meilleur d\'entre vous est le meilleur envers sa famille, et je suis le meilleur d\'entre vous envers ma famille.', 'Tirmidhi 3895', 'Le vrai caractère se voit à la maison, là où l\'on n\'a rien à prouver.'],
   ['h21', 'Un homme dit au Prophète ﷺ : « Conseille-moi. » Il répondit : « Ne te mets pas en colère. » L\'homme répéta sa demande plusieurs fois, et il répondait : « Ne te mets pas en colère. »', 'Bukhari 6116', 'Un seul conseil, répété : la colère ouvre la porte à la plupart des regrets.'],
   ['h22', 'La religion est facilité. Personne ne la rendra difficile sans qu\'elle ne le vainque. Visez la justesse, rapprochez-vous-en, et réjouissez-vous.', 'Bukhari 39', 'Contre le tout ou rien : mieux vaut un peu, juste et durable, qu\'un excès qui s\'effondre.'],
-  ['h23', 'Sois dans ce monde comme un étranger, ou comme un voyageur de passage.', 'Bukhari 6416', 'Le voyageur ne s\'attache pas à la gare où il attend son train. Il sait où il va.'],
+  ['h23', 'Sois dans ce monde comme un étranger, ou comme un voyageur de passage.', 'Bukhari 6416', 'Le voyageur ne s\'attache pas au lieu où il fait halte. Il sait où il va.'],
   ['h24', 'La bonté, c\'est le bon caractère. Et le péché, c\'est ce qui trouble ton âme et que tu détesterais que les gens découvrent.', 'Muslim 2553', 'Une boussole intérieure : si tu ne voudrais pas que ça se sache, c\'est un signal.'],
   ['h25', 'La pudeur fait partie de la foi.', 'Bukhari 24, Muslim 36', 'Al-haya\' : une retenue qui protège, devant les gens et devant Allah.'],
   ['h26', 'Le fils d\'Adam ne remplit pas de récipient pire que son ventre. Quelques bouchées suffisent pour tenir son dos droit. S\'il faut plus : un tiers pour sa nourriture, un tiers pour sa boisson, un tiers pour son souffle.', 'Tirmidhi 2380', 'Une règle de nutrition d\'une étonnante modernité : manger à sa faim, pas jusqu\'à l\'excès.'],
@@ -2715,51 +2730,22 @@ const FX_HADITH = [
 ];
 /* Business : [id, livre ou thème, mois du parcours (0 = général), titre, texte, à appliquer] */
 const FX_BIZ = [
-  ['b1', 'Le Personal MBA', 1, 'Tout business fait 5 choses', 'Créer quelque chose de valeur, attirer l\'attention (marketing), convaincre d\'acheter (vente), livrer ce qui a été promis, et gagner assez pour continuer (finance). Si une des cinq manque, l\'entreprise s\'arrête.', 'Prends Mister Pizza et trouve ses 5 fonctions.'],
-  ['b2', 'Le Personal MBA', 1, 'La valeur perçue', 'Les gens n\'achètent pas ce qu\'une chose vaut, mais ce qu\'ils croient qu\'elle vaut pour eux. Le même produit peut valoir 5 € ou 50 € selon le contexte et la présentation.', 'Observe un produit cher près de chez toi : qu\'est-ce qui justifie son prix aux yeux du client ?'],
-  ['b3', 'Le Personal MBA', 1, 'Le goulot d\'étranglement', 'Un système ne va jamais plus vite que son maillon le plus lent. Améliorer autre chose que ce maillon ne sert presque à rien.', 'Chez Mister Pizza, quel est le goulot un vendredi soir : le four, la préparation, la livraison ?'],
-  ['b4', 'Finance', 1, 'Chiffre d\'affaires ≠ bénéfice ≠ trésorerie', 'Le chiffre d\'affaires, c\'est tout ce qui entre. Le bénéfice, ce qui reste une fois toutes les charges payées. La trésorerie, l\'argent réellement disponible aujourd\'hui. Une entreprise rentable peut mourir faute de trésorerie.', 'Calcule ces trois chiffres pour ton propre mois.'],
-  ['b5', 'Finance', 1, 'Marge brute et marge nette', 'Marge brute = prix de vente − coût direct du produit. Marge nette = ce qui reste après toutes les charges (loyer, salaires, impôts…). Une belle marge brute peut cacher une marge nette nulle.', 'Estime le coût des ingrédients d\'une pizza et sa marge brute.'],
-  ['b6', 'Finance', 10, 'Le point mort', 'Le chiffre d\'affaires à partir duquel toutes les charges sont couvertes. En dessous, chaque mois coûte de l\'argent. Au-dessus, chaque vente rapporte vraiment.', 'Pour un projet imaginaire : charges fixes ÷ marge par vente = nombre de ventes pour être à l\'équilibre.'],
-  ['b7', 'Finance', 10, 'CAC et LTV', 'Le coût pour acquérir un client (CAC) doit rester bien inférieur à ce que ce client rapporte sur toute sa relation avec toi (LTV). On vise souvent une LTV au moins trois fois supérieure.', 'Combien un client fidèle rapporte-t-il à Mister Pizza sur un an ?'],
-  ['b8', 'Stratégie', 0, 'La loi de Pareto', 'Souvent, environ 20 % des causes produisent 80 % des effets : 20 % des clients font l\'essentiel du chiffre, 20 % des tâches donnent l\'essentiel du résultat. Ce n\'est pas une loi exacte, c\'est une invitation à chercher l\'essentiel.', 'Quelles 2 actions de ta semaine ont produit le plus de résultats ?'],
-  ['b9', 'Comment se faire des amis — Carnegie', 2, 'Le prénom est une musique', 'Pour chacun, son prénom est le son le plus agréable qui soit. S\'en souvenir et l\'utiliser, c\'est dire « tu comptes ».', 'Retiens et utilise le prénom de chaque personne rencontrée aujourd\'hui.'],
-  ['b10', 'Comment se faire des amis — Carnegie', 2, 'Parle de ce qui l\'intéresse, lui', 'Le moyen le plus sûr de toucher quelqu\'un est de parler de ce qui compte pour lui. On s\'intéresse davantage à son propre mal de dents qu\'à une catastrophe à l\'autre bout du monde.', 'Pose une question sur la passion de quelqu\'un et écoute vraiment.'],
-  ['b11', 'Comment se faire des amis — Carnegie', 2, 'Critiquer ne sert à rien', 'La critique met l\'autre sur la défensive et le pousse à se justifier. Carnegie conseille de comprendre avant de juger, et de commencer par ce qui va bien.', 'Avant tout reproche en équipe, commence par un point positif réel.'],
-  ['b12', 'Comment se faire des amis — Carnegie', 2, 'Admets vite tes torts', 'Reconnaître rapidement une erreur, avant qu\'on te la reproche, désarme l\'autre et renforce ton autorité au lieu de l\'affaiblir.', 'La prochaine erreur que tu fais : dis-le toi-même, en premier.'],
-  ['b13', 'Le Manager Minute — Blanchard', 2, 'L\'objectif minute', 'Un objectif doit tenir sur une page et se relire en une minute. Si ton équipier ne peut pas dire en une phrase ce qu\'on attend de lui, l\'objectif n\'est pas clair.', 'Écris l\'objectif d\'un de tes agents en une phrase mesurable.'],
-  ['b14', 'Le Manager Minute — Blanchard', 2, 'Surprendre en train de bien faire', 'Au lieu de guetter les erreurs, guette ce qui est bien fait, et félicite tout de suite, précisément. Le comportement félicité se répète.', 'Félicite quelqu\'un aujourd\'hui sur un fait précis, au moment où il se produit.'],
-  ['b15', 'Le Manager Minute — Blanchard', 2, 'Le recadrage minute', 'Recadrer vite, sur le comportement et pas sur la personne, puis rappeler qu\'on la tient en estime. Court, factuel, sans rancune.', 'Prépare ta phrase : « Ce que tu as fait… », « Ce que ça a provoqué… », « Je sais que tu vaux mieux. »'],
-  ['b16', 'Influence — Cialdini', 3, 'La réciprocité', 'Nous nous sentons obligés de rendre ce qu\'on nous donne. D\'où les échantillons gratuits, et la force d\'un service rendu sans rien attendre.', 'Repère un « cadeau » commercial reçu cette semaine : qu\'attendait-il de toi ?'],
-  ['b17', 'Influence — Cialdini', 3, 'La rareté', 'Ce qui semble rare ou sur le point de disparaître paraît plus précieux. « Plus que 2 en stock », « offre jusqu\'à minuit » : la peur de perdre pousse à agir.', 'La prochaine fois qu\'on te presse d\'acheter, attends 24 h.'],
-  ['b18', 'Influence — Cialdini', 3, 'La preuve sociale', 'Dans le doute, on fait comme les autres. Les avis, les files d\'attente et les « déjà 10 000 clients » jouent sur ce réflexe.', 'Regarde comment un restaurant plein attire plus de monde qu\'un restaurant vide.'],
-  ['b19', 'Influence — Cialdini', 3, 'L\'engagement', 'Une fois qu\'on a dit oui à une petite chose, on veut rester cohérent et on dit plus facilement oui à la suite. Le « pied dans la porte ».', 'Utilise-le pour toi : un tout petit engagement écrit rend le grand plus facile.'],
-  ['b20', 'Système 1 / Système 2 — Kahneman', 3, 'Deux vitesses de pensée', 'Le système 1 est rapide, automatique, émotionnel. Le système 2 est lent, réfléchi, fatigant. La plupart de nos décisions viennent du premier, même quand on croit utiliser le second.', 'Avant une décision importante, compte jusqu\'à 10 : laisse le système 2 arriver.'],
-  ['b21', 'Système 1 / Système 2 — Kahneman', 3, 'L\'ancrage', 'Le premier chiffre entendu influence tous les jugements suivants, même s\'il est absurde. En négociation, celui qui annonce le premier chiffre pose souvent l\'ancre.', 'Remarque les « prix barrés » : ils sont là pour ancrer.'],
-  ['b22', 'Système 1 / Système 2 — Kahneman', 3, 'L\'aversion à la perte', 'Perdre 100 € fait environ deux fois plus mal que gagner 100 € ne fait plaisir. D\'où la force des messages du type « ne perdez pas… ».', 'C\'est ce principe que l\'app utilise quand elle te montre ta série en jeu.'],
-  ['b23', 'Neuromarketing — Renvoisé & Morin', 3, 'Le contraste', 'Le cerveau décide plus vite quand il voit un avant/après, un avec/sans. Les auteurs en font l\'un de leurs six leviers de persuasion (avec l\'égocentrisme, le concret, le début et la fin, le visuel et l\'émotion).', 'Présente ta prochaine idée en « sans ça… / avec ça… ».'],
-  ['b24', 'SPIN Selling — Rackham', 4, 'Les 4 questions SPIN', 'Situation (le contexte), Problème (ce qui coince), Implication (ce que ça coûte), Need-payoff (ce que la solution apporterait). Le client se convainc lui-même en répondant.', 'Entraîne-toi sur un ami : 2 questions de chaque type.'],
-  ['b25', 'SPIN Selling — Rackham', 4, 'Poser l\'implication', 'Dans les grosses ventes, ce qui fait la différence n\'est pas de présenter le produit, mais de faire mesurer au client le coût de son problème. Un problème sans conséquence ne s\'achète pas.', 'Pose la question : « Et si ça continue, qu\'est-ce que ça te coûte ? »'],
-  ['b26', 'Offres à 100 millions $ — Hormozi', 5, 'L\'équation de la valeur', 'La valeur perçue monte avec le résultat rêvé et la probabilité perçue d\'y arriver. Elle baisse avec le délai et l\'effort demandés. Augmente le haut, réduis le bas.', 'Pour une offre imaginaire, trouve un moyen de réduire le délai ou l\'effort.'],
-  ['b27', 'Offres à 100 millions $ — Hormozi', 5, 'Une offre qu\'on se sent bête de refuser', 'Au lieu de baisser le prix, empile de la valeur : bonus, garantie, rapidité, accompagnement. L\'objectif est que refuser paraisse absurde.', 'Liste 3 bonus possibles pour un service que tu pourrais vendre.'],
-  ['b28', 'Offres à 100 millions $ — Hormozi', 5, 'La garantie inverse le risque', 'Une garantie forte transfère le risque du client vers le vendeur. Elle rassure, et en pratique peu de clients honnêtes l\'utilisent.', 'Quelle garantie pourrais-tu offrir sans te mettre en danger ?'],
-  ['b29', 'Ne coupez jamais la poire en deux — Voss', 6, 'Le miroir', 'Répéter les 1 à 3 derniers mots de l\'autre, sur un ton interrogatif. Il développe presque toujours, et se sent écouté.', 'Essaie-le une fois aujourd\'hui, naturellement.'],
-  ['b30', 'Ne coupez jamais la poire en deux — Voss', 6, 'L\'étiquetage', 'Nommer l\'émotion de l\'autre : « On dirait que ça te frustre… ». Une émotion nommée perd de sa force, et la personne se sent comprise.', 'Quand quelqu\'un s\'énerve, commence par « On dirait que… ».'],
-  ['b31', 'Ne coupez jamais la poire en deux — Voss', 6, 'Les questions calibrées', 'Des questions en « comment » ou « qu\'est-ce que » : « Comment suis-je censé faire ça ? » L\'autre se met à résoudre ton problème à ta place.', 'Remplace un « non » sec par « Comment je pourrais faire ça ? ».'],
-  ['b32', 'Comment réussir une négociation — Fisher & Ury', 6, 'Intérêts, pas positions', 'La position, c\'est ce que l\'autre réclame. L\'intérêt, c\'est pourquoi il le réclame. Deux positions opposées cachent souvent des intérêts compatibles.', 'Face à une demande, demande-toi : « Qu\'est-ce qu\'il veut vraiment obtenir ? »'],
-  ['b33', 'Comment réussir une négociation — Fisher & Ury', 6, 'Ta meilleure solution de repli', 'La MESORE (BATNA en anglais) : ce que tu feras si l\'accord échoue. Plus elle est bonne, plus tu es fort. Ne négocie jamais sans la connaître.', 'Avant ta prochaine négociation (salaire, loyer…), écris ta MESORE.'],
-  ['b34', 'This Is Marketing — Godin', 7, 'Le plus petit marché viable', 'Au lieu de viser tout le monde, vise le plus petit groupe de gens qui ont vraiment besoin de toi. Mieux vaut être indispensable pour peu que moyen pour tous.', 'Décris en une phrase le client idéal d\'un projet que tu as en tête.'],
-  ['b35', 'This Is Marketing — Godin', 7, '« Les gens comme nous… »', 'On achète pour appartenir : « les gens comme nous font des choses comme ça ». Le marketing efficace parle d\'identité, pas seulement de caractéristiques.', 'Quelle identité ton produit préféré te fait-il ressentir ?'],
-  ['b36', 'The Mom Test — Fitzpatrick', 9, 'Ne parle pas de ton idée', 'Si tu présentes ton idée, les gens seront polis et te mentiront. Parle plutôt de leur vie, de leurs problèmes, de ce qu\'ils font déjà.', 'Interroge quelqu\'un sur un problème sans jamais citer ta solution.'],
-  ['b37', 'The Mom Test — Fitzpatrick', 9, 'Le passé plutôt que le futur', '« Tu l\'achèterais ? » ne vaut rien. « La dernière fois que ça t\'est arrivé, qu\'as-tu fait ? » vaut de l\'or. Les faits passés ne mentent pas, les promesses si.', 'Transforme une question « tu ferais… » en « la dernière fois… ».'],
-  ['b38', 'The Mom Test — Fitzpatrick', 9, 'Seul l\'engagement compte', 'Un compliment n\'est pas une donnée. Ce qui compte, c\'est ce que la personne est prête à donner : du temps, de l\'argent, ou sa réputation (te présenter à quelqu\'un).', 'Demande un petit engagement concret plutôt qu\'un avis.'],
-  ['b39', 'Lean Startup — Ries', 9, 'Le produit minimum viable', 'La plus petite version qui permet d\'apprendre quelque chose de vrai auprès de vrais clients. Pas un produit bâclé : une expérience.', 'Quel serait le test le plus simple pour vérifier une de tes idées cette semaine ?'],
-  ['b40', 'Lean Startup — Ries', 9, 'Construire, mesurer, apprendre', 'Le but n\'est pas de construire, mais d\'apprendre le plus vite possible. Chaque cycle doit répondre à une question précise.', 'Écris la question que ton prochain projet doit trancher.'],
-  ['b41', 'Lean Startup — Ries', 9, 'Les métriques de vanité', 'Les chiffres qui font plaisir (vues, abonnés) mais ne disent rien de la santé du projet. Préfère les chiffres qui mènent à une décision (taux de retour, ventes répétées).', 'Sur tes réseaux, quel chiffre mesure vraiment quelque chose ?'],
-  ['b42', 'Juridique & fiscal', 11, 'Micro-entreprise : attention aux marges', 'En micro, les cotisations sont calculées sur le chiffre d\'affaires, pas sur le bénéfice. Une activité avec beaucoup de frais peut donc rapporter moins que prévu.', 'Pour une idée d\'activité, estime tes frais en % du chiffre d\'affaires.'],
-  ['b43', 'Stratégie', 0, 'Le coût d\'opportunité', 'Chaque choix a un prix caché : ce que tu aurais pu faire à la place. Une heure de scroll coûte une heure de lecture, de sport ou de repos.', 'Quelle est la meilleure chose que tu pourrais faire de la prochaine heure ?'],
-  ['b44', 'Stratégie', 0, 'Les intérêts composés… de compétences', 'Un petit progrès régulier s\'accumule comme des intérêts : 1 % de mieux chaque jour change tout en un an. Pas besoin de riba pour profiter de l\'effet composé : il marche aussi sur le savoir.', 'Quelle compétence veux-tu améliorer d\'1 % aujourd\'hui ?'],
-  ['b45', 'Relation client', 0, 'La règle du pic et de la fin', 'Un client se souvient surtout du meilleur moment et de la fin de son expérience. Soigner la fin (au revoir, petit geste, suivi) vaut souvent plus que tout le reste.', 'En gare, soigne la fin de chaque prise en charge.']
+['b1', 'Business et islam', 0, 'L\'intention d\'abord', 'Le même business peut être une adoration ou une simple course à l\'argent : tout dépend de l\'intention. Le Prophète ﷺ a dit : « Le commerçant véridique et digne de confiance sera avec les prophètes, les véridiques et les martyrs. » (Tirmidhi 1209)', 'Écris en une phrase pourquoi tu fais ton business, en dehors de l\'argent.'],
+  ['b2', 'Business et islam', 0, 'Le commerce est licite, l\'usure non', '« Allah a rendu licite le commerce et interdit l\'usure. » (Coran 2:275). Emprunter avec intérêt pour lancer un produit est donc à éviter. Les alternatives existent : épargne, précommandes, associée, financement participatif sans intérêt.', 'Liste comment tu pourrais financer ta prochaine étape sans crédit à intérêt.'],
+  ['b3', 'Business et islam', 0, 'Ne pas vendre ce qu\'on n\'a pas', 'Le Prophète ﷺ a dit : « Ne vends pas ce qui n\'est pas en ta possession. » (Abu Dawud 3503, Tirmidhi 1232). Pour lancer un produit sans stock, les savants proposent des formules claires, comme la précommande (salam) avec un prix, une description et un délai précis.', 'Si tu vends avant d\'avoir le produit, écris noir sur blanc le délai et ce que reçoit la cliente.'],
+  ['b4', 'Business et islam', 0, 'Montrer le défaut', 'Le Prophète ﷺ passa près d\'un tas de grain, glissa la main dedans et trouva le dessous mouillé. Il dit : « Celui qui trompe n\'est pas des nôtres. » (Muslim 102). Une photo trop retouchée, un « stock limité » inventé : c\'est la même chose, version moderne.', 'Relis ta dernière présentation de produit : tout est-il exactement vrai ?'],
+  ['b5', 'Business et islam', 0, 'Être facile en affaires', '« Qu\'Allah fasse miséricorde à un homme facile quand il vend, quand il achète et quand il réclame son dû. » (Bukhari 2076). La souplesse (un retour accepté, un délai laissé) coûte peu et construit une réputation.', 'Choisis un geste de souplesse que tu peux offrir à tes clientes.'],
+  ['b6', 'Business et islam', 0, 'La transaction bénie', '« Le vendeur et l\'acheteur ont le choix tant qu\'ils ne se sont pas séparés. S\'ils sont sincères et clairs, leur vente est bénie ; s\'ils cachent et mentent, la bénédiction en est effacée. » (Bukhari 2079, Muslim 1532)', 'Ajoute sur ta page ce que ton produit ne fait pas.'],
+  ['b7', 'Business et islam', 0, 'Khadija, femme d\'affaires', 'Avant la révélation, Khadija (qu\'Allah l\'agrée) dirigeait un commerce caravanier et engageait des hommes pour mener ses marchandises. C\'est en voyant l\'honnêteté de Muhammad ﷺ dans ses affaires qu\'elle le remarqua.', 'Ta réputation se construit dans les petites transactions. Laquelle soigner cette semaine ?'],
+  ['b8', 'Contenu', 0, 'Une vidéo, une idée', 'Une vidéo qui dit trois choses n\'en fait retenir aucune. Une idée, un exemple, une fin claire. Si tu ne peux pas résumer ta vidéo en une phrase, elle n\'est pas prête.', 'Résume ta prochaine vidéo en une phrase avant de la tourner.'],
+  ['b9', 'Contenu', 0, 'Les premières secondes', 'Sur les réseaux, on décide en un instant de rester ou de passer. Commence par la promesse ou la question, pas par « Salam, aujourd\'hui je vais vous parler de… ».', 'Écris trois accroches différentes pour la même vidéo et garde la plus forte.'],
+  ['b10', 'Contenu', 0, 'La régularité bat la viralité', 'Une vidéo virale sans suite s\'oublie. Trois vidéos par semaine pendant trois mois apprennent à l\'algorithme et au public qui tu es, et t\'apprennent à toi ce qui marche.', 'Bloque tes trois créneaux de tournage de la semaine.'],
+  ['b11', 'Communauté', 0, 'Les 1 000 vrais fans', 'L\'idée de Kevin Kelly (2008) : une créatrice n\'a pas besoin de millions d\'abonnés. Mille personnes qui aiment vraiment ce qu\'elle fait et achètent ce qu\'elle crée peuvent suffire à en vivre.', 'Qui sont tes dix premières vraies fans ? Parle-leur directement.'],
+  ['b12', 'Communauté', 0, 'Répondre, c\'est construire', 'Chaque commentaire auquel tu réponds est une conversation, pas une statistique. Les premières communautés se construisent à la main, une personne à la fois.', 'Réponds à tous les commentaires de ta dernière vidéo.'],
+  ['b13', 'Offre', 0, 'Tester avant de fabriquer', 'Avant de produire en quantité, vérifie que des gens veulent vraiment ton produit : sondage en story, liste d\'attente, petite précommande honnête. C\'est l\'esprit du « produit minimum viable » (Eric Ries, The Lean Startup).', 'Pose une question en story sur ton produit et note les réponses.'],
+  ['b14', 'Offre', 0, 'La valeur perçue', 'On n\'achète pas ce qu\'une chose vaut, mais ce qu\'on croit qu\'elle vaut pour soi. La présentation, l\'histoire et la confiance changent le prix qu\'une cliente est prête à payer.', 'Raconte en trois phrases pourquoi tu as créé ton produit.'],
+  ['b15', 'Chiffres', 0, 'Chiffre d\'affaires n\'est pas bénéfice', 'Si tu vends pour 1 000 € mais que produits, envois, publicités et frais coûtent 800 €, ton bénéfice est de 200 €, avant impôts et cotisations. Beaucoup de projets meurent en confondant les deux.', 'Calcule ce qu\'il te reste vraiment sur une vente.'],
+  ['b16', 'Chiffres', 0, 'La zakat du commerce', 'Selon l\'avis de la majorité des savants, les marchandises destinées à la vente entrent dans le calcul de la zakat, à leur valeur, une fois par an lunaire, si le seuil (nisab) est atteint. Les détails se vérifient avec une personne de savoir.', 'Note la date de début de ton activité : elle servira de repère.']
 ];
 /* Science & culture : [id, cat, accroche, texte] */
 const FX_SCI = [
@@ -2812,30 +2798,19 @@ const FX_SCI = [
 ];
 /* Psychologie : [id, titre, texte, à observer] */
 const FX_PSY = [
-  ['p1', 'L\'effet Barnum', 'En 1949, Forer donna à ses étudiants un même « profil personnalisé » vague. Ils le notèrent 4,3 sur 5 en moyenne pour sa justesse. On se reconnaît dans les phrases générales : c\'est la base de la lecture à froid.', 'Repère une phrase d\'horoscope qui pourrait convenir à tout le monde.'],
-  ['p2', 'La lecture à froid', 'Les « médiums » combinent phrases générales, questions déguisées et lecture des réactions. Chaque hochement de tête les guide. Patrick Jane dans The Mentalist en montre les ficelles.', 'En conversation, observe les micro-réactions quand tu dis quelque chose de juste.'],
-  ['p3', 'Le vrai sourire', 'Un sourire sincère plisse le coin des yeux (sourire de Duchenne). Un sourire de politesse ne mobilise souvent que la bouche.', 'Aujourd\'hui, regarde les yeux des gens quand ils sourient.'],
-  ['p4', 'Mentir ne fait pas regarder à gauche', 'Aucun signe unique ne trahit le mensonge : ni les yeux, ni le fait de se toucher le nez. Les méta-analyses montrent que nous détectons le mensonge à peine mieux que le hasard.', 'Méfie-toi de ceux qui prétendent lire les mensonges en un regard.'],
-  ['p5', 'L\'effet de halo', 'Une seule qualité visible (beauté, assurance, tenue) colore tout le reste du jugement. On prête plus d\'intelligence à quelqu\'un de bien habillé.', 'Ta tenue au travail parle avant toi.'],
-  ['p6', 'La simple exposition', 'Plus on voit quelque chose, plus on tend à l\'apprécier (Zajonc, 1968). La familiarité crée la sympathie, et la publicité le sait.', 'Remarque une musique que tu as fini par aimer à force de l\'entendre.'],
-  ['p7', 'L\'effet Benjamin Franklin', 'Demander un petit service à quelqu\'un le rend souvent plus bienveillant envers toi : pour rester cohérent, il se dit qu\'il doit t\'apprécier.', 'Demande un petit conseil à quelqu\'un avec qui le contact est froid.'],
-  ['p8', 'L\'effet projecteur', 'On surestime beaucoup à quel point les autres remarquent nos erreurs. Dans une expérience (Gilovich, 2000), des étudiants avec un t-shirt gênant pensaient que la moitié du groupe l\'avait vu ; environ un quart seulement l\'avait remarqué.', 'Ta dernière gaffe, presque personne ne s\'en souvient.'],
-  ['p9', 'Le biais de confirmation', 'On cherche, on retient et on croit surtout ce qui confirme ce qu\'on pense déjà. Même les gens intelligents : ils sont juste meilleurs pour se justifier.', 'Cherche un argument solide contre une de tes convictions.'],
-  ['p10', 'Le biais de négativité', 'Un reproche pèse plus lourd que plusieurs compliments. Le cerveau est réglé pour repérer les menaces en priorité.', 'Chez ton équipe, compense chaque remarque négative par plusieurs retours positifs sincères.'],
-  ['p11', 'Parler de soi fait plaisir', 'Parler de soi active les circuits de la récompense du cerveau (Tamir & Mitchell, 2012). Les gens aiment ceux qui les font parler d\'eux.', 'Dans ta prochaine conversation, parle 30 % et écoute 70 %.'],
-  ['p12', 'L\'effet caméléon', 'On imite inconsciemment la posture et les gestes de ceux qu\'on apprécie, et on apprécie davantage ceux qui nous imitent subtilement (Chartrand & Bargh, 1999).', 'Observe deux amis qui discutent : leurs postures se ressemblent-elles ?'],
-  ['p13', 'Le nombre de Dunbar', 'Notre cerveau ne pourrait entretenir qu\'environ 150 relations stables. Au-delà, on connaît des visages, pas des personnes.', 'Qui sont les 5 personnes les plus proches de toi ? Ils te façonnent.'],
-  ['p14', 'Les pieds parlent', 'Selon Joe Navarro, ancien agent du FBI, les pieds orientés vers la sortie indiquent souvent l\'envie de partir. À lire comme un indice, jamais comme une preuve.', 'En pleine discussion, jette un œil discret aux pieds de ton interlocuteur.'],
-  ['p15', 'Dunning-Kruger', 'Les débutants ont tendance à surestimer leur niveau, faute de savoir ce qu\'ils ignorent. Plus on apprend, plus on mesure l\'étendue de ce qu\'on ne sait pas.', 'Dans quel domaine te crois-tu meilleur que tu ne l\'es ?'],
-  ['p16', 'Trop de choix tue le choix', 'Dans une expérience célèbre, un stand de 24 confitures attirait plus de monde qu\'un stand de 6, mais vendait beaucoup moins. L\'effet varie selon les études, mais simplifier le choix aide souvent à décider.', 'Propose 2 ou 3 options, pas 10.'],
-  ['p17', 'L\'effet gaffe', 'Une personne compétente qui commet une petite maladresse devient plus sympathique (Aronson, 1966). La perfection éloigne, l\'humanité rapproche.', 'Ose montrer une petite faiblesse devant ton équipe.'],
-  ['p18', '100 millisecondes', 'Il suffit d\'environ un dixième de seconde pour se faire une première impression d\'un visage (Willis & Todorov, 2006). Plus de temps renforce surtout la confiance dans ce premier jugement.', 'Soigne tes premières secondes : regard, sourire, poignée de main.'],
-  ['p19', 'La porte au nez', 'Demander d\'abord quelque chose d\'énorme, qui sera refusé, rend la vraie demande (plus petite) plus facile à accepter.', 'Repère cette technique la prochaine fois qu\'on te vend quelque chose.'],
-  ['p20', 'L\'illusion de transparence', 'On croit que nos émotions se lisent sur notre visage bien plus qu\'en réalité. Ton stress avant un oral se voit beaucoup moins que tu ne le penses.', 'Avant de parler en public, rappelle-toi : ils ne voient pas ton cœur battre.'],
-  ['p21', 'Le silence qui fait parler', 'Après une question, la plupart des gens ne supportent pas un silence de quelques secondes et se mettent à en dire plus. Les enquêteurs et les bons négociateurs l\'utilisent.', 'Après ta prochaine question, attends 3 secondes de plus.'],
-  ['p22', 'L\'effet Pygmalion', 'Les attentes d\'un chef ou d\'un professeur influencent les performances de ceux qu\'il encadre. L\'effet est réel, mais plus modeste que ne le suggérait l\'étude originale de 1968.', 'Dis à un équipier que tu le crois capable d\'un défi précis.'],
-  ['p23', 'La règle du pic et de la fin', 'On juge une expérience surtout sur son moment le plus intense et sur sa fin, pas sur sa durée totale (Kahneman).', 'Termine ta journée sur une bonne action : c\'est d\'elle que tu te souviendras.'],
-  ['p24', 'L\'intention d\'implémentation', 'Dire « si X arrive, alors je fais Y » augmente nettement les chances de passer à l\'acte. Le cerveau prépare la réponse à l\'avance.', 'Écris un « si… alors… » pour ton moment le plus difficile de la journée.']
+['p1', 'La comparaison sociale', 'Le psychologue Leon Festinger (1954) a montré qu\'on s\'évalue en se comparant aux autres. Sur les réseaux, on compare ses coulisses aux meilleurs moments des autres : le match est perdu d\'avance.', 'Après un scroll, note si tu te sens mieux ou moins bien. C\'est un bon indicateur.'],
+  ['p2', 'Le syndrome de l\'imposteur', 'Décrit par Clance et Imes (1978) chez des femmes brillantes qui attribuaient leur réussite à la chance. Se sentir imposteur ne veut pas dire l\'être : c\'est souvent le signe qu\'on grandit.', 'Écris trois choses que tu as réussies grâce à ton travail.'],
+  ['p3', 'L\'effet Zeigarnik', 'On se souvient mieux des tâches inachevées que des terminées (Zeigarnik, 1927). C\'est pour ça qu\'une liste à moitié faite tourne dans la tête le soir.', 'Avant de dormir, écris la prochaine étape de ce qui est en cours : ton esprit peut lâcher.'],
+  ['p4', 'Si… alors…', 'Les « intentions de mise en œuvre » (Gollwitzer) : décider à l\'avance « quand X arrive, je fais Y » augmente fortement les chances de passer à l\'action.', 'Écris une phrase : « Après la prière de Dhuhr, je… »'],
+  ['p5', 'L\'autocompassion', 'Les travaux de Kristin Neff montrent que se parler avec douceur après un échec aide à recommencer, bien plus que la dureté. On progresse mieux en coach qu\'en juge.', 'Parle-toi comme tu parlerais à ta meilleure amie.'],
+  ['p6', 'Le flow', 'Mihaly Csikszentmihalyi a décrit cet état où l\'on oublie le temps, absorbé par une tâche ni trop facile ni trop difficile. Les notifications le cassent en une seconde.', 'Pour ton prochain montage, téléphone en mode avion pendant 30 minutes.'],
+  ['p7', 'La gratitude écrite', 'Dans une étude d\'Emmons et McCullough (2003), noter chaque semaine ce pour quoi on est reconnaissant améliorait le bien-être et l\'optimisme.', 'Ce soir, écris trois bienfaits de ta journée.'],
+  ['p8', 'Psychologie islamique', 'Les trois états de l\'âme', 'Le Coran décrit l\'âme qui incite au mal (12:53), l\'âme qui se reproche (75:2) et l\'âme apaisée (89:27). Se reprocher ses fautes n\'est pas un échec : c\'est le signe d\'une âme vivante, en chemin.', 'Quand tu te reproches quelque chose, transforme-le en une action concrète.'],
+  ['p9', 'Psychologie islamique', 'Regarder en dessous de soi', '« Regardez ceux qui sont en dessous de vous et ne regardez pas ceux qui sont au-dessus : c\'est plus digne pour ne pas mépriser les bienfaits d\'Allah sur vous. » (Muslim 2963). Un remède à la comparaison, 14 siècles avant les réseaux sociaux.', 'Pense à trois bienfaits que tu as et que d\'autres n\'ont pas.'],
+  ['p10', 'Psychologie islamique', 'Attache ta chamelle', 'Un homme demanda s\'il devait attacher sa chamelle ou s\'en remettre à Allah. Le Prophète ﷺ répondit : « Attache-la et remets-t\'en à Allah. » (Tirmidhi 2517). Faire sa part, puis lâcher l\'anxiété du résultat.', 'Sur ce qui t\'inquiète : qu\'est-ce qui dépend de toi aujourd\'hui ?'],
+  ['p11', 'Psychologie islamique', 'Les cœurs s\'apaisent', '« N\'est-ce point par l\'évocation d\'Allah que les cœurs se tranquillisent ? » (Coran 13:28). La répétition calme d\'une formule ralentit aussi la respiration, ce qui apaise le corps.', 'Trois minutes de dhikr lent, en expirant doucement.'],
+  ['p12', 'Psychologie islamique', 'Al-Balkhi, précurseur', 'Au IXe siècle, le savant Abu Zayd al-Balkhi distinguait déjà la tristesse qui a une cause de celle qui n\'en a pas d\'apparente, et proposait de corriger les pensées par des pensées plus justes, une idée proche des thérapies cognitives modernes.', 'Prends une pensée qui te pèse et écris une version plus juste.'],
+  ['p13', 'Psychologie islamique', 'Au premier choc', '« La patience, c\'est au premier choc. » (Bukhari 1283, Muslim 926). La première réaction est celle qui compte le plus, et elle se prépare avant l\'épreuve.', 'Choisis une phrase à te dire la prochaine fois que quelque chose te contrarie.']
 ];
 /* Quiz : [id, question, [choix], index de la bonne réponse, explication] */
 const FX_QUIZ = [
@@ -2974,6 +2949,46 @@ Object.assign(FX_AR, {"x1": "وَلَقَدۡ خَلَقۡنَا ٱلۡإِنس�
    Défilement plein écran aimanté, une carte à la fois. 4 piliers équilibrés (foi, business, savoir, psychologie),
    une carte interactive toutes les 4 (quiz, vrai/faux, mot arabe), une carte « pause » toutes les 15.
    Les cartes jamais vues passent en premier ; le business du mois en cours est favorisé. */
+const FX_SANTE = [
+  ['sa1', 'La lumière du matin', 'Quelques minutes dehors à la lumière du jour, le matin, aident ton horloge interne à se régler : on s\'endort plus facilement le soir.', 'Après Fajr ou au réveil, 10 minutes près d\'une fenêtre ou dehors.'],
+  ['sa2', 'Marcher après le repas', 'Une marche de 10 à 15 minutes après un repas réduit le pic de sucre dans le sang et le coup de fatigue qui suit.', 'Après le déjeuner, marche le temps d\'un appel.'],
+  ['sa3', 'L\'eau et la concentration', 'Une légère déshydratation suffit à baisser l\'attention et l\'humeur. La fatigue de l\'après-midi est parfois une simple soif.', 'Garde une bouteille d\'eau visible sur ton espace de travail.'],
+  ['sa4', 'Expirer plus longtemps', 'Expirer plus longtemps qu\'on inspire active le système nerveux qui calme le corps. Quatre secondes pour inspirer, six pour expirer.', 'Cinq respirations comme ça, avant de tourner une vidéo.'],
+  ['sa5', 'Les écrans du soir', 'La lumière des écrans le soir retarde la mélatonine, l\'hormone du sommeil. Se coucher à heure régulière compte autant que la durée.', 'Pose le téléphone loin du lit 30 minutes avant de dormir.'],
+  ['sa6', 'Bouger un peu, souvent', 'L\'OMS recommande au moins 150 minutes d\'activité modérée par semaine pour les adultes. Trois séances et un peu de marche suffisent à y arriver.', 'Compte tes minutes de marche aujourd\'hui.'],
+  ['sa7', 'Le fer et la fatigue', 'Le manque de fer est fréquent chez les femmes, surtout avec des règles abondantes, et il fatigue. Seule une prise de sang permet de le savoir.', 'Si tu es souvent épuisée, parles-en à ton médecin.'],
+  ['sa8', 'La règle 20-20-20', 'Toutes les 20 minutes d\'écran, regarder à 20 pieds (environ 6 mètres) pendant 20 secondes repose les yeux.', 'Pendant ton prochain montage, fais la pause à chaque export.'],
+  ['sa9', 'La qaylula', 'La courte sieste de midi, la qaylula, était une habitude des Compagnons. La science confirme qu\'une sieste de 10 à 20 minutes relance la vigilance sans alourdir.', 'Essaie 15 minutes allongée, un minuteur à côté.'],
+  ['sa10', 'Le bain chaud du soir', 'Un bain ou une douche chaude une à deux heures avant le coucher aide le corps à baisser sa température ensuite, ce qui favorise l\'endormissement.', 'Garde ton bain de sidr pour le soir du dimanche.']
+];
+const FX_FOOD = [
+  ['fo1', 'Les dattes', 'Le Prophète ﷺ rompait le jeûne avec des dattes fraîches, sinon sèches, sinon de l\'eau (Abu Dawud, Tirmidhi). Elles apportent des fibres, du potassium et une énergie rapide.', 'Deux dattes et un verre d\'eau avant ta séance de sport.'],
+  ['fo2', 'Un tiers, un tiers, un tiers', '« Un tiers pour la nourriture, un tiers pour la boisson, un tiers pour la respiration. » (Tirmidhi 2380). Manger sans remplir l\'estomac garde l\'énergie de l\'après-repas.', 'À ton prochain repas, arrête-toi avant d\'être pleine.'],
+  ['fo3', 'Légumineuses et céréales', 'Lentilles avec du riz, pois chiches avec du pain, haricots avec de la semoule : ensemble, ils apportent des protéines complètes, sans viande.', 'Prévois un plat lentilles et riz cette semaine.'],
+  ['fo4', 'Fer et vitamine C', 'Le fer des végétaux s\'absorbe mal seul. Avec de la vitamine C (citron, kiwi, poivron), il passe beaucoup mieux. Le thé et le café au même moment le freinent.', 'Un filet de citron sur tes lentilles, le thé une heure après.'],
+  ['fo5', 'La talbina', 'Aïcha (qu\'Allah l\'agrée) recommandait la talbina, une bouillie d\'orge au lait, et rapportait que le Prophète ﷺ disait qu\'elle apaise le cœur du malade et enlève une part de la tristesse (Bukhari 5417, Muslim 2216).', 'Essaie une talbina un matin : orge, lait, un peu de miel.'],
+  ['fo6', 'Le miel', '« De leur ventre sort une boisson aux couleurs variées, dans laquelle il y a une guérison pour les gens. » (Coran 16:69). Des pots de miel retrouvés dans des tombes égyptiennes étaient encore comestibles.', 'Une cuillère de miel dans une tisane plutôt que du sucre.'],
+  ['fo7', 'L\'huile d\'olive', '« Mangez de l\'huile d\'olive et enduisez-vous-en, car elle vient d\'un arbre béni. » (Tirmidhi 1851). Le régime méditerranéen, riche en huile d\'olive, est associé à moins de maladies du cœur.', 'Remplace une cuisson au beurre par l\'huile d\'olive.'],
+  ['fo8', 'La grenade', 'Citée parmi les fruits des jardins du Paradis (Coran 55:68), la grenade est riche en polyphénols, des antioxydants, et en vitamines C et K.', 'Ajoute des grains de grenade sur une salade ou un yaourt.'],
+  ['fo9', 'La nigelle', '« La graine de nigelle est un remède à tout mal, sauf la mort. » (Bukhari 5688, Muslim 2215). Elle s\'utilise en petite quantité, et ne remplace pas un traitement prescrit.', 'Quelques graines sur ton pain ou tes légumes rôtis.'],
+  ['fo10', 'Manger lentement', 'Le signal de satiété met une vingtaine de minutes à arriver au cerveau. Manger vite, c\'est souvent manger plus que sa faim.', 'Pose ta fourchette entre deux bouchées pendant un repas.'],
+  ['fo11', 'Le fruit entier', 'Un fruit entier nourrit mieux que son jus : les fibres ralentissent le sucre et rassasient. Un verre de jus contient le sucre de plusieurs fruits sans leurs fibres.', 'Remplace un jus par le fruit entier demain.']
+];
+const FX_ANIMAL = [
+  ['an1', 'L\'abeille', 'Une sourate entière porte son nom (An-Nahl, 16:68). Une butineuse produit environ un douzième de cuillère à café de miel dans toute sa vie. Ton pot de miel, c\'est le travail de milliers d\'abeilles.'],
+  ['an2', 'La fourmi', 'Dans la sourate An-Naml, une fourmi avertit les autres de l\'arrivée de l\'armée de Sulayman (27:18). Les fourmis communiquent réellement entre elles, par des signaux chimiques appelés phéromones.'],
+  ['an3', 'La pieuvre', 'Elle a trois cœurs et un sang bleu : son sang transporte l\'oxygène grâce au cuivre et non au fer comme le nôtre.'],
+  ['an4', 'Le corbeau', 'Dans le Coran, un corbeau montre au fils d\'Adam comment enterrer son frère (5:31). Les corbeaux reconnaissent les visages humains et s\'en souviennent pendant des années, selon les études de l\'université de Washington.'],
+  ['an5', 'L\'araignée', '« La maison la plus fragile est celle de l\'araignée. » (Coran 29:41). Pourtant, à poids égal, sa soie est plus résistante que l\'acier. C\'est la toile, comme abri, qui est fragile, pas le fil.'],
+  ['an6', 'L\'éléphant', 'Une sourate porte son nom (Al-Fil). Les éléphants se reconnaissent dans un miroir, ce que très peu d\'animaux savent faire (Plotnik, 2006).'],
+  ['an7', 'La huppe', 'La huppe de Sulayman lui rapporta l\'existence du royaume de Saba (27:20-22). La huppe fasciée migre chaque année d\'Europe vers l\'Afrique pour passer l\'hiver.'],
+  ['an8', 'Le chat', 'Le Compagnon Abu Hurayra doit son surnom, « le père du petit chat », à l\'affection qu\'il leur portait. Le ronronnement d\'un chat vibre à des fréquences basses, que certains chercheurs associent à la réparation des os.'],
+  ['an9', 'Le dauphin', 'Il dort avec une moitié de cerveau à la fois : l\'autre reste éveillée pour respirer et surveiller.'],
+  ['an10', 'Le chameau', '« Ne regardent-ils pas les chameaux, comment ils ont été créés ? » (Coran 88:17). Sa bosse stocke de la graisse, pas de l\'eau, et il peut boire plus de 100 litres en une dizaine de minutes.'],
+  ['an11', 'La loutre de mer', 'Pour dormir sans dériver, les loutres de mer se tiennent par la patte à la surface de l\'eau.'],
+  ['an12', 'La chienne assoiffée', 'Le Prophète ﷺ raconta qu\'une femme fut pardonnée pour avoir donné à boire à un chien assoiffé (Bukhari 3467, Muslim 2245). La miséricorde envers les animaux compte auprès d\'Allah.'],
+  ['an13', 'Le colibri', 'C\'est le seul oiseau capable de voler en arrière, et ses ailes battent des dizaines de fois par seconde.']
+];
 const FXC = {
   coran: { bg: ['#14402F', '#06110D'], ac: '#E9C46A', lbl: 'Coran', shape: 'star' },
   hadith: { bg: ['#2A2A17', '#080C08'], ac: '#F0D9A0', lbl: 'Hadith', shape: 'orb' },
@@ -2990,14 +3005,21 @@ const FXC = {
   fait: { bg: ['#0F3A33', '#040D0B'], ac: '#7FE0C8', lbl: 'Le savais-tu ?', shape: 'star' },
   savant: { bg: ['#1B2336', '#05070C'], ac: '#E6D3A3', lbl: 'Parole de savant', shape: 'orb' },
   poeme: { bg: ['#381423', '#0C0508'], ac: '#F0B7C4', lbl: 'Poésie', shape: 'star' },
-  obs: { bg: ['#0E2E3A', '#03090C'], ac: '#8FD8E8', lbl: 'Le Coran invite à observer', shape: 'atom' }
+  obs: { bg: ['#0E2E3A', '#03090C'], ac: '#8FD8E8', lbl: 'Le Coran invite à observer', shape: 'atom' },
+  psyi: { bg: ['#1E1A3E', '#06050E'], ac: '#C9B8FF', lbl: 'Psychologie islamique', shape: 'ring' },
+  sante: { bg: ['#0E2A3A', '#03090D'], ac: '#9CD8F0', lbl: 'Bien-être et santé', shape: 'orb' },
+  food: { bg: ['#2E1426', '#0B0509'], ac: '#F59AAE', lbl: 'Alimentation', shape: 'spark' },
+  animal: { bg: ['#1C2A16', '#070B05'], ac: '#B8E0A0', lbl: 'Animaux', shape: 'star' }
 };
 const FX_ALL = {};
 FX_CORAN.forEach(([id, ref, sura, fr, ex]) => { FX_ALL[id] = { id, t: 'coran', ref, sura, fr, ex, ar: FX_AR[id] }; });
 FX_HADITH.forEach(([id, fr, src, ex]) => { FX_ALL[id] = { id, t: 'hadith', fr, src, ex }; });
 FX_BIZ.forEach(([id, book, m, title, text, act]) => { FX_ALL[id] = { id, t: 'biz', book, m, title, text, act }; });
 FX_SCI.forEach(([id, cat, title, text]) => { FX_ALL[id] = { id, t: cat, title, text }; });
-FX_PSY.forEach(([id, title, text, act]) => { FX_ALL[id] = { id, t: 'psy', title, text, act }; });
+FX_PSY.forEach(r => { const isl = r.length === 5; const [id, title, text, act] = isl ? [r[0], r[2], r[3], r[4]] : r; FX_ALL[id] = { id, t: isl ? 'psyi' : 'psy', title, text, act }; });
+FX_SANTE.forEach(([id, title, text, act]) => { FX_ALL[id] = { id, t: 'sante', title, text: text + (act ? ' ' + act : '') }; });
+FX_FOOD.forEach(([id, title, text, act]) => { FX_ALL[id] = { id, t: 'food', title, text: text + (act ? ' ' + act : '') }; });
+FX_ANIMAL.forEach(([id, title, text]) => { FX_ALL[id] = { id, t: 'animal', title, text }; });
 FX_QUIZ.forEach(([id, q, opts, ok, ex]) => { FX_ALL[id] = { id, t: 'quiz', q, opts, ok, ex }; });
 FX_VF.forEach(([id, q, ok, ex]) => { FX_ALL[id] = { id, t: 'vf', q, ok, ex }; });
 FX_RECIT.forEach(([id, who, title, text, lesson, src]) => { FX_ALL[id] = { id, t: 'recit', who, title, text, lesson, src }; });
@@ -3017,7 +3039,6 @@ function fxPick(type) {
   if (!pool.length) pool = FX_POOL(type);
   const unseen = pool.filter(c => !S.flux.seen[c.id]);
   let cands = unseen.length ? unseen : pool.slice().sort((a, b) => S.flux.seen[a.id] - S.flux.seen[b.id]).slice(0, Math.max(3, Math.ceil(pool.length * .3)));
-  if (type === 'biz') { const m = currentMonth(), w = cands.flatMap(c => (c.m === m || c.m === m + 1) ? [c, c, c] : [c]); cands = w; }
   return cands[Math.floor(Math.random() * cands.length)];
 }
 function fxMe() {
@@ -3043,10 +3064,12 @@ function fxNext() {
   if (i % 15 === 0) return fxPause();
   if (i % 4 === 0) { const r = Math.random(); if (r < .25) { const w = Math.floor(Math.random() * WORDS.length); return { id: 'ar' + w + '-' + uid(), t: 'ar', w }; } return fxPick(r < .65 ? 'quiz' : 'vf'); }
   if (i % 11 === 0) return fxMe();
-  if (!FXS.order.length) FXS.order = ['foi', 'biz', 'savoir', 'psy'].sort(() => Math.random() - .5);
+  if (!FXS.order.length) FXS.order = ['foi', 'foi', 'biz', 'savoir', 'psy', 'soin', 'animal'].sort(() => Math.random() - .5);
   const p = FXS.order.shift();
   if (p === 'foi') return fxPick(foiType());
   if (p === 'savoir') return fxPick(Math.random() < .5 ? 'sci' : 'cult');
+  if (p === 'psy') return fxPick(Math.random() < .5 ? 'psy' : 'psyi');
+  if (p === 'soin') return fxPick(Math.random() < .5 ? 'sante' : 'food');
   return fxPick(p);
 }
 /* Éléments flottants, positions déterministes par carte */
@@ -3101,9 +3124,9 @@ function fxCard(c) {
   } else if (c.t === 'biz') {
     body = `<p class="fk">Business · ${esc(c.book)}${c.m ? ` · mois ${c.m}` : ''}</p><h2 class="ft">${fxWords(c.title)}</h2><p class="fb">${esc(c.text)}</p>
       <div class="fdo"><small>À faire</small>${esc(c.act)}</div>`;
-  } else if (c.t === 'sci' || c.t === 'cult') {
+  } else if (c.t === 'sci' || c.t === 'cult' || c.t === 'sante' || c.t === 'food' || c.t === 'animal') {
     body = `<p class="fk">${conf.lbl}</p><h2 class="ft big">${fxWords(c.title)}</h2><p class="fb">${esc(c.text)}</p>`;
-  } else if (c.t === 'psy') {
+  } else if (c.t === 'psy' || c.t === 'psyi') {
     body = `<p class="fk">Psychologie humaine</p><h2 class="ft">${fxWords(c.title)}</h2><p class="fb">${esc(c.text)}</p><div class="fdo"><small>Observe</small>${esc(c.act)}</div>`;
   } else if (c.t === 'quiz') {
     body = `<p class="fk">Quiz</p><h2 class="ft">${fxWords(c.q)}</h2><div class="fopts">${c.opts.map((o, i) => `<button class="fopt" data-fq="${i}">${esc(o)}</button>`).join('')}</div><div class="fans"></div>`;
@@ -3225,7 +3248,7 @@ function openSettings() {
     <div class="group"><button class="cell tap" data-fsetup><span class="lbl">Habitudes et horaires de la mosquée</span>${ICON.chev}</button></div>
     <p class="gt">Tes retours</p>
     <p class="hint" style="margin-top:0">Tu es la première à tester cette app. Note chaque chose qui gêne ou chaque idée dans Idées (l'ampoule en haut), en commençant par « Faille : » ou « Idée : ».</p>
-    <p class="hint" style="margin-top:30px;text-align:center">Zia · v1.0 · fonctionne hors ligne</p>`;
+    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.0 · fonctionne hors ligne</p>`;
   $('#settingsSheet').showModal();
   if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(p => { const el = $('#persistInfo'); if (el && p) el.textContent = 'Stockage protégé contre le nettoyage automatique.'; }).catch(() => {});
 }
@@ -3281,6 +3304,424 @@ function openIdeas() {
     <div class="row" style="margin-top:10px"><button class="btn grow" id="ideaAdd">Ajouter</button>${list.length ? '<button class="btn quiet" id="ideaCopy">Tout copier</button>' : ''}</div>
     <div style="margin-top:18px">${list.map(i => `<div class="idea"><p>${esc(i.text)}<time>${new Date(i.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time></p><button class="icon-btn" data-idel="${i.id}" aria-label="Supprimer cette idée"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join('') || '<p class="empty">Aucune idée pour l\'instant.</p>'}</div>`;
   const d = $('#ideasSheet'); if (!d.open) d.showModal();
+}
+
+/* =====================================================================
+   ZIA · ALPHABET — lire avant de comprendre
+   Niveau 1 : les 28 lettres seules · Niveau 2 : leurs formes dans le mot
+   Niveau 3 : les voyelles courtes. Une lettre est acquise après 3 bonnes
+   réponses ; 22 lettres acquises ouvrent le niveau suivant.
+   ===================================================================== */
+const LETTERS = [
+  ['ا', 'Alif', 'أَلِف', 'a', 'Le « â » long, ou le support d\'une voyelle. Ne s\'attache jamais à la lettre qui suit.', 1],
+  ['ب', 'Ba', 'بَاء', 'b', 'Comme le « b » français. Un point en dessous.'],
+  ['ت', 'Ta', 'تَاء', 't', 'Comme le « t » français. Deux points au-dessus.'],
+  ['ث', 'Tha', 'ثَاء', 'th', 'Le « th » anglais de « think », langue entre les dents. Trois points.'],
+  ['ج', 'Jim', 'جِيم', 'dj', 'Comme « dj » dans « djinn ». Un point dans le creux.'],
+  ['ح', 'Ḥa', 'حَاء', 'ḥ', 'Un « h » soufflé du milieu de la gorge, comme pour embuer une vitre. Sans point.'],
+  ['خ', 'Kha', 'خَاء', 'kh', 'Comme la « jota » espagnole. Un point au-dessus.'],
+  ['د', 'Dal', 'دَال', 'd', 'Comme le « d » français. Ne s\'attache pas à la lettre qui suit.', 1],
+  ['ذ', 'Dhal', 'ذَال', 'dh', 'Le « th » anglais de « this ». Un point au-dessus.', 1],
+  ['ر', 'Ra', 'رَاء', 'r', 'Un « r » roulé du bout de la langue. Ne s\'attache pas à la lettre qui suit.', 1],
+  ['ز', 'Zay', 'زَاي', 'z', 'Comme le « z » français. Un point au-dessus.', 1],
+  ['س', 'Sin', 'سِين', 's', 'Comme le « s » français. Trois petites dents.'],
+  ['ش', 'Shin', 'شِين', 'ch', 'Comme « ch » dans « chat ». Trois points au-dessus.'],
+  ['ص', 'Ṣad', 'صَاد', 'ṣ', 'Un « s » emphatique : la langue s\'abaisse, le son devient plus grave.'],
+  ['ض', 'Ḍad', 'ضَاد', 'ḍ', 'Un « d » emphatique, propre à l\'arabe. Un point au-dessus.'],
+  ['ط', 'Ṭa', 'طَاء', 'ṭ', 'Un « t » emphatique, plus grave.'],
+  ['ظ', 'Ẓa', 'ظَاء', 'ẓ', 'Un « dh » emphatique. Un point au-dessus.'],
+  ['ع', 'ʿAyn', 'عَيْن', 'ʿ', 'Un son serré au fond de la gorge, sans équivalent en français. À écouter plusieurs fois.'],
+  ['غ', 'Ghayn', 'غَيْن', 'gh', 'Comme le « r » français grasseyé. Un point au-dessus.'],
+  ['ف', 'Fa', 'فَاء', 'f', 'Comme le « f » français. Un point au-dessus.'],
+  ['ق', 'Qaf', 'قَاف', 'q', 'Un « k » prononcé tout au fond de la gorge. Deux points.'],
+  ['ك', 'Kaf', 'كَاف', 'k', 'Comme le « k » français.'],
+  ['ل', 'Lam', 'لَام', 'l', 'Comme le « l » français.'],
+  ['م', 'Mim', 'مِيم', 'm', 'Comme le « m » français.'],
+  ['ن', 'Nun', 'نُون', 'n', 'Comme le « n » français. Un point au-dessus.'],
+  ['ه', 'Ha', 'هَاء', 'h', 'Un « h » léger, simplement expiré.'],
+  ['و', 'Waw', 'وَاو', 'w', 'Le « w » de « wagon », ou un « ou » long. Ne s\'attache pas à la lettre qui suit.', 1],
+  ['ي', 'Ya', 'يَاء', 'y', 'Le « y » de « yaourt », ou un « i » long. Deux points en dessous.']
+];
+const LGROUPS = [[1, 2, 3, 24, 27], [4, 5, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16], [17, 18], [19, 20], [21, 22]];
+const ALV = [
+  { k: 1, t: 'Les lettres', s: 'Reconnaître chacune des 28 lettres' },
+  { k: 2, t: 'Dans le mot', s: 'Ses formes au début, au milieu, à la fin' },
+  { k: 3, t: 'Les voyelles', s: 'a, i, ou : tes premières syllabes' },
+  { k: 4, t: 'Lire des mots', s: 'Voyelles longues et premiers mots du Coran' }
+];
+const RWORDS = [['اللَّه', 'Allāh', 'Allah'], ['رَبّ', 'rabb', 'Seigneur'], ['كِتَاب', 'kitāb', 'livre'], ['قَلْب', 'qalb', 'cœur'], ['نُور', 'nūr', 'lumière'], ['رَحْمَة', 'raḥma', 'miséricorde'], ['سَلَام', 'salām', 'paix'], ['جَنَّة', 'janna', 'jardin, paradis'], ['نَار', 'nār', 'feu'], ['يَوْم', 'yawm', 'jour'], ['عِلْم', 'ʿilm', 'savoir'], ['صَبْر', 'ṣabr', 'patience'], ['حَقّ', 'ḥaqq', 'vérité'], ['أَرْض', 'arḍ', 'terre'], ['سَمَاء', 'samāʾ', 'ciel'], ['عَبْد', 'ʿabd', 'serviteur'], ['دِين', 'dīn', 'religion'], ['نَاس', 'nās', 'les gens'], ['رَسُول', 'rasūl', 'messager'], ['بَيْت', 'bayt', 'maison'], ['مَاء', 'māʾ', 'eau'], ['شَمْس', 'shams', 'soleil'], ['قَمَر', 'qamar', 'lune'], ['شُكْر', 'shukr', 'gratitude'], ['ذِكْر', 'dhikr', 'rappel, évocation'], ['صَلَاة', 'ṣalāh', 'prière'], ['هُدًى', 'hudā', 'guidée'], ['رُمَّان', 'rummān', 'grenade'], ['نَخْل', 'nakhl', 'palmiers'], ['قَلَم', 'qalam', 'calame']];
+const alGoal = lv => lv === 4 ? 20 : AL_GOAL;
+const VOW = [['َ', 'a', 'fatḥa'], ['ِ', 'i', 'kasra'], ['ُ', 'ou', 'ḍamma']];
+const AL_GOAL = 22;
+const FORM_LBL = ['Seule', 'Au début', 'Au milieu', 'À la fin'];
+let AV = (() => { try { return localStorage.getItem('zia-ar-view') || 'lettres'; } catch (e) { return 'lettres'; } })();
+const AL = { lv: 1, open: null, q: null, ok: 0, n: 0 };
+function alif() { if (!S.alif || typeof S.alif !== 'object') S.alif = { 1: {}, 2: {}, 3: {}, 4: {} }; [1, 2, 3, 4].forEach(l => { if (!S.alif[l]) S.alif[l] = {}; }); return S.alif; }
+const alPool = lv => lv === 4 ? RWORDS.map((_, i) => i) : LETTERS.map((_, i) => i).filter(i => lv !== 3 || i !== 0);
+const alScore = (lv, i) => Math.min(3, alif()[lv][i] || 0);
+const alKnown = lv => alPool(lv).filter(i => alScore(lv, i) >= 3).length;
+const alOpen = lv => lv === 1 || alKnown(lv - 1) >= alGoal(lv - 1);
+const alPoints = () => [1, 2, 3, 4].reduce((m, l) => m + alPool(l).reduce((a, i) => a + alScore(l, i), 0), 0);
+function formsOf(i) { const [c, , , , , nc] = LETTERS[i]; return nc ? [c, c, 'ـ' + c, 'ـ' + c] : [c, c + 'ـ', 'ـ' + c + 'ـ', 'ـ' + c]; }
+const syl = (i, v) => (LETTERS[i][3] === 'ʿ' ? 'ʿ' : LETTERS[i][3]) + VOW[v][1];
+function sayAr(txt) {
+  try {
+    if (!('speechSynthesis' in window)) { toast('La lecture à voix haute n\'est pas disponible sur cet appareil.'); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(txt); u.lang = 'ar-SA'; u.rate = .75;
+    const v = speechSynthesis.getVoices().find(x => /^ar/i.test(x.lang)); if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function alNext() {
+  const lv = AL.lv, pool = alPool(lv), prev = AL.q && AL.q.i;
+  const w = pool.map(i => { const s = alScore(lv, i); return s >= 3 ? .35 : 4 - s; });
+  let r = Math.random() * w.reduce((a, b) => a + b, 0), k = 0; for (; k < pool.length; k++) { r -= w[k]; if (r <= 0) break; }
+  let i = pool[Math.min(k, pool.length - 1)]; if (i === prev && pool.length > 1) i = pool[(pool.indexOf(i) + 1 + Math.floor(Math.random() * (pool.length - 1))) % pool.length];
+  const g = LGROUPS.find(x => x.includes(i)) || [], near = g.filter(x => x !== i && pool.includes(x)).sort(() => Math.random() - .5).slice(0, 2);
+  const others = pool.filter(x => x !== i && !near.includes(x)).sort(() => Math.random() - .5);
+  if (lv === 4) {
+    const d = pool.filter(x => x !== i).sort(() => Math.random() - .5).slice(0, 3);
+    AL.q = { lv, i, shown: RWORDS[i][0], opts: [i, ...d].sort(() => Math.random() - .5).map(x => ({ t: RWORDS[x][1], ok: x === i })), answered: false };
+    drawLQ(); return;
+  }
+  if (lv === 3) {
+    const v = Math.floor(Math.random() * 3), o = (near[0] != null ? near[0] : others[0]);
+    const opts = [0, 1, 2].map(x => ({ t: syl(i, x), ok: x === v })).concat([{ t: syl(o, v), ok: false }]).sort(() => Math.random() - .5);
+    AL.q = { lv, i, v, shown: LETTERS[i][0] + VOW[v][0], opts, answered: false };
+  } else {
+    const d = near.concat(others).slice(0, 3), f = lv === 2 ? 1 + Math.floor(Math.random() * 3) : 0;
+    const opts = [i, ...d].sort(() => Math.random() - .5).map(x => ({ t: `${LETTERS[x][1]} · ${LETTERS[x][3]}`, ok: x === i }));
+    AL.q = { lv, i, f, shown: formsOf(i)[f], opts, answered: false };
+  }
+  drawLQ();
+}
+function drawLQ() {
+  const el = $('#lquiz'); if (!el) return;
+  if (!AL.q || AL.q.lv !== AL.lv) { alNext(); return; }
+  const q = AL.q, sc = alScore(q.lv, q.i);
+  el.innerHTML = `<p class="small muted" style="margin:0">${q.lv === 4 ? 'Comment se lit ce mot ?' : q.lv === 3 ? 'Comment se lit cette syllabe ?' : q.lv === 2 ? `Quelle lettre, écrite ${FORM_LBL[q.f].toLowerCase()} d'un mot ?` : 'Quelle est cette lettre ?'}</p>
+    <div class="word" lang="ar">${q.shown}</div>
+    <div class="opts">${q.opts.map((o, k) => `<button class="opt" data-la="${k}">${esc(o.t)}</button>`).join('')}</div>
+    <div class="quiz-foot"><span class="num">Session ${AL.ok}/${AL.n}</span>
+      <span class="mastery" aria-label="Maîtrise : ${sc} sur 3">${[0, 1, 2].map(k => `<i class="${k < sc ? 'on' : ''}"></i>`).join('')}</span>
+      <span id="lnext" style="min-width:96px;text-align:right"></span></div>
+    <p class="small ltip" id="ltip"></p>`;
+}
+function alAnswer(btn) {
+  const q = AL.q; if (!q || q.answered) return; q.answered = true;
+  const o = q.opts[Number(btn.dataset.la)], lv = q.lv, sc = alif()[lv], before = alKnown(lv);
+  AL.n++;
+  if (o.ok) { AL.ok++; sc[q.i] = Math.min(3, (sc[q.i] || 0) + 1); haptic(); }
+  else sc[q.i] = Math.max(0, (sc[q.i] || 0) - 1);
+  save();
+  $$('#lquiz .opt').forEach((b, k) => { b.classList.add(q.opts[k].ok ? 'good' : b === btn ? 'bad' : 'dim'); b.disabled = true; });
+  if (!o.ok && !reduceMotion()) btn.classList.add('shake');
+  const s = alScore(lv, q.i); $$('#lquiz .mastery i').forEach((x, k) => x.classList.toggle('on', k < s));
+  const L = lv === 4 ? ['', '', RWORDS[q.i][0]] : LETTERS[q.i];
+  if (lv === 4) $('#ltip').innerHTML = `<b lang="ar" class="ar" style="font-size:1.35rem">${q.shown}</b> se lit « ${RWORDS[q.i][1]} » et veut dire « ${RWORDS[q.i][2]} ». <button class="link-btn small" data-lsay="${esc(q.shown)}">Écouter</button>`;
+  else $('#ltip').innerHTML = `<b lang="ar" class="ar" style="font-size:1.35rem">${q.shown}</b> ${lv === 3 ? `se lit « ${syl(q.i, q.v)} » : ${L[1]} avec une ${VOW[q.v][2]}.` : `c'est ${L[1]} (${L[3]}). ${esc(L[4])}`} <button class="link-btn small" data-lsay="${esc(lv === 3 ? q.shown : L[2])}">Écouter</button>`;
+  $('#lnext').innerHTML = '<button class="btn sm" data-lgo>Suivant</button>';
+  const g = $('#lgrid'); if (g) g.innerHTML = alGrid();
+  const p = $('#lprog'); if (p) p.innerHTML = alProg();
+  if (o.ok && s === 3 && (sc[q.i] === 3)) {
+    const after = alKnown(lv);
+    const g = alGoal(lv), MSG = { 1: ['Palier 2 ouvert', 'Tu reconnais les lettres. Voyons comment elles changent dans un mot.'], 2: ['Palier 3 ouvert', 'Tu lis les lettres dans un mot. Place aux voyelles : tes premières syllabes.'], 3: ['Palier 4 ouvert', 'Celui qui lit le Coran avec difficulté a une double récompense.', 'Bukhari 4937, Muslim 798'], 4: ['Le sens s\'ouvre', 'Tu sais lire des mots. L\'onglet « Mots du Coran » est ouvert : place à leur sens.'] };
+    if (before < g && after >= g) reward(12, { big: true, msg: MSG[lv] });
+    else reward(2, { msg: lv === 4 ? ['Mot lu', `${RWORDS[q.i][0]} · ${RWORDS[q.i][1]}`] : ['Lettre acquise', `${L[0]} · ${L[1]}`] });
+  }
+  if (o.ok && (lv === 1 || lv === 2)) sayAr(L[2]); else if (o.ok) sayAr(q.shown);
+}
+function alGrid() {
+  if (AL.lv === 4) return RWORDS.map((w, i) => { const s = alScore(4, i); return `<button class="ltile lw s${s} ${AL.open === i ? 'sel' : ''}" data-lt="${i}" aria-label="${w[1]} : ${s} sur 3"><span lang="ar">${w[0]}</span></button>`; }).join('');
+  return LETTERS.map((L, i) => { const off = AL.lv === 3 && i === 0, s = off ? 0 : alScore(AL.lv, i);
+    return `<button class="ltile s${s} ${AL.open === i ? 'sel' : ''} ${off ? 'off' : ''}" data-lt="${i}" aria-label="${L[1]} : ${s} sur 3"><span lang="ar">${L[0]}</span></button>`; }).join('');
+}
+function alProg() { const n = alKnown(AL.lv), t = alPool(AL.lv).length, g = alGoal(AL.lv); return `<div class="row between"><span class="small"><b class="num" style="font:400 1.6rem var(--serif);color:var(--mint)">${n}</b><span class="muted"> / ${t} ${AL.lv === 4 ? 'mots lus' : 'acquises'}</span></span><span class="small muted">${n >= g ? 'Palier suivant ouvert' : `Palier suivant à ${g}`}</span></div><div class="bar" style="margin-top:8px"><i style="width:${n / t * 100}%;background:var(--mint)"></i></div>`; }
+function alCard(i) {
+  if (AL.lv === 4) { const w = RWORDS[i]; return `<div class="lcard"><div class="row between" style="align-items:flex-start"><p class="lbig" lang="ar" style="font-size:3rem">${w[0]}</p><div style="flex:1;margin-left:14px"><h3 style="margin:10px 0 0">${w[1]}</h3><p class="small" style="margin:4px 0 0">${alScore(4, i) >= 3 ? `Sens : ${w[2]}` : 'Le sens s\'affiche quand tu sais lire le mot.'}</p></div><button class="icon-btn" data-lclose aria-label="Fermer">${delX}</button></div><button class="btn sm" data-lsay="${esc(w[0])}" style="margin-top:12px">Écouter</button></div>`; }
+  const L = LETTERS[i], f = formsOf(i);
+  return `<div class="lcard"><div class="row between" style="align-items:flex-start"><div><p class="lbig" lang="ar">${L[0]}</p></div>
+      <div style="flex:1;margin-left:14px"><h3 style="margin:6px 0 0">${L[1]} <span class="ar" lang="ar" style="font-size:1.3rem;color:var(--muted)">${L[2]}</span></h3><p class="small" style="margin:4px 0 0">${esc(L[4])}</p></div>
+      <button class="icon-btn" data-lclose aria-label="Fermer"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="lforms">${f.map((x, k) => `<div><span lang="ar">${x}</span><small>${FORM_LBL[k]}</small></div>`).join('')}</div>
+    ${i ? `<div class="lsyl">${VOW.map((v, k) => `<button data-lsay="${L[0] + v[0]}"><span lang="ar">${L[0] + v[0]}</span><small>${syl(i, k)}</small></button>`).join('')}</div>` : ''}
+    <button class="btn sm" data-lsay="${esc(L[2])}" style="margin-top:12px">Écouter son nom</button></div>`;
+}
+function vLettres() {
+  alif(); if (!alOpen(AL.lv)) AL.lv = 1;
+  return `<div class="lvls">${ALV.map(l => { const op = alOpen(l.k); return `<button data-alv="${l.k}" aria-pressed="${AL.lv === l.k}" ${op ? '' : 'disabled'}><b>${op ? l.k : '·'} ${l.t}</b><small>${op ? l.s : `Après ${alGoal(l.k - 1)} ${l.k - 1 === 4 ? 'mots' : 'acquis'} au palier ${l.k - 1}`}</small></button>`; }).join('')}</div>
+  ${AL.lv === 4 ? '<p class="small ltip4">ا après une fatḥa allonge le « a » (ā), و après une ḍamma donne « ū », ي après une kasra donne « ī ». La chadda ّ double la lettre.</p>' : ''}
+  <div id="lprog" style="margin-top:16px">${alProg()}</div>
+  <div class="lgrid ${AL.lv === 4 ? 'words' : ''}" id="lgrid" dir="rtl">${alGrid()}</div>
+  <p class="hint" style="margin-top:8px">Touche une lettre pour voir ses formes et l'écouter.</p>
+  ${AL.open != null ? alCard(AL.open) : ''}
+  <section style="margin-top:22px"><div class="quiz"><div class="qcard" id="lquiz" aria-live="polite"></div></div>
+  <p class="hint">Les lettres que tu connais le moins reviennent plus souvent.</p></section>`;
+}
+function alifClick(t) {
+  const c = s => t.closest(s); let el;
+  if ((el = c('[data-arv]'))) { AV = el.dataset.arv; try { localStorage.setItem('zia-ar-view', AV); } catch (e) {} render(); return true; }
+  if ((el = c('[data-alv]'))) { AL.lv = Number(el.dataset.alv); AL.q = null; AL.open = null; render(); return true; }
+  if ((el = c('[data-lt]'))) { const i = Number(el.dataset.lt); if (AL.lv === 3 && i === 0) return true; AL.open = AL.open === i ? null : i; render(); if (AL.open != null) { sayAr(AL.lv === 4 ? RWORDS[i][0] : LETTERS[i][2]); setTimeout(() => { const k = $('.lcard'); k && k.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'nearest' }); }, 40); } return true; }
+  if (c('[data-lclose]')) { AL.open = null; render(); return true; }
+  if ((el = c('[data-lsay]'))) { sayAr(el.dataset.lsay); return true; }
+  if ((el = c('[data-la]'))) { alAnswer(el); return true; }
+  if (c('[data-lgo]')) { alNext(); const k = $('#lquiz'); if (k && !reduceMotion()) { k.classList.remove('in'); void k.offsetWidth; k.classList.add('in'); } return true; }
+  return false;
+}
+
+/* =====================================================================
+   ZIA · MODULES — Corps, Routine du soir, Reset du dimanche, Hizya, Apprendre
+   Toutes les données dans S.z (normalizeZ).
+   ===================================================================== */
+function defaultZ() {
+  return {
+    corps: { sessions: [], food: {} },
+    routine: { items: [['tel', 'Poser le téléphone loin du lit', 1], ['demain', 'Préparer demain : tenue, sac, 3 priorités', 5], ['range', 'Ranger un coin', 5], ['soin', 'Soin du soir : visage, cheveux', 3], ['bilan', 'Noter une chose réussie aujourd\'hui', 1]], log: {}, notes: {} },
+    reset: { w: {} },
+    hizya: { videos: [], stories: {}, subs: [], product: [['p1', 'Idée claire du produit'], ['p2', 'Fabrication ou fournisseur trouvé'], ['p3', 'Premier échantillon'], ['p4', 'Prix et marge calculés'], ['p5', 'Photos et présentation'], ['p6', 'Page de vente prête'], ['p7', 'Lancement']].map(([id, t]) => ({ id, t, done: false })), sales: [], notes: [], goal: 2000, wk: 3 },
+    biz: { done: {}, notes: {}, study: {} }
+  };
+}
+function normalizeZ(z) {
+  const d = defaultZ(); z = z && typeof z === 'object' ? z : {};
+  const o = {};
+  Object.keys(d).forEach(k => { o[k] = Object.assign({}, d[k], z[k] && typeof z[k] === 'object' ? z[k] : {}); });
+  if (!Array.isArray(o.corps.sessions)) o.corps.sessions = [];
+  if (!Array.isArray(o.routine.items) || !o.routine.items.length) o.routine.items = d.routine.items;
+  ['videos', 'subs', 'sales', 'notes', 'product'].forEach(k => { if (!Array.isArray(o.hizya[k])) o.hizya[k] = d.hizya[k]; });
+  return o;
+}
+const Z = () => (S.z = S.z || defaultZ());
+const weekStart = (d = new Date()) => { const x = new Date(d); const w = (x.getDay() + 6) % 7; x.setDate(x.getDate() - w); return iso(x); };
+const inWeek = k => k >= weekStart() && k <= todayISO();
+const delX = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+function ring(p, big, small, col = 'gold') {
+  return `<div class="zring"><svg viewBox="-60 -60 120 120"><circle r="50" fill="none" stroke="var(--raise)" stroke-width="7"/><circle r="50" fill="none" stroke="var(--${col})" stroke-width="7" stroke-linecap="round" transform="rotate(-90)" ${ringDash(50, p)} style="transition:stroke-dashoffset .6s var(--ease)"/></svg><div><b>${big}</b><span>${small}</span></div></div>`;
+}
+
+/* ----- Corps : à la maison, sans matériel, pour l'énergie ----- */
+const CPH = [
+  { k: 'eveil', n: 'Éveil', from: 0, min: 20, s: 'Réveiller le corps en douceur' },
+  { k: 'elan', n: 'Élan', from: 12, min: 25, s: 'Plus de répétitions, plus de souffle' },
+  { k: 'rayonne', n: 'Rayonne', from: 30, min: 30, s: 'Des séances complètes, pleines d\'énergie' }
+];
+const WARM = ['Échauffement', '3 min', 'Marche sur place, cercles des bras et des hanches.'];
+const COOL = ['Étirements', '3 min', 'Cuisses, dos, épaules. Respire lentement.'];
+const CPROG = {
+  eveil: [[['Squats', '3 × 8', 'Pieds largeur d\'épaules, descends comme pour t\'asseoir.'], ['Pompes contre un mur', '3 × 8', 'Corps droit, mains à hauteur d\'épaules.'], ['Pont fessier', '3 × 10', 'Allongée, pieds au sol, monte le bassin.'], ['Gainage sur les genoux', '3 × 15 s', 'Coudes sous les épaules, ventre rentré.']],
+    [['Fentes arrière, main au mur', '3 × 6 par jambe', 'Le genou arrière descend vers le sol.'], ['Superman au sol', '3 × 8', 'Sur le ventre, lève bras et jambes 2 secondes.'], ['Montées de genoux', '3 × 20 s', 'Sur place, à ton rythme.'], ['Chaise contre le mur', '3 × 15 s', 'Dos au mur, cuisses presque parallèles au sol.']]],
+  elan: [[['Squats', '3 × 12', 'Descends lentement, remonte plus vite.'], ['Pompes sur les genoux', '3 × 8', 'Poitrine vers le sol, coudes à 45°.'], ['Pont fessier', '3 × 15', 'Serre les fessiers en haut une seconde.'], ['Gainage', '3 × 20 s', 'Sur les avant-bras et les pointes de pieds, ou les genoux.'], ['Jumping jacks', '3 × 30 s', 'Version sans saut si besoin : un pas de côté.']],
+    [['Fentes arrière', '3 × 10 par jambe', 'Buste droit.'], ['Pompes, mains sur une chaise stable', '3 × 10', 'Plus la surface est haute, plus c\'est facile.'], ['Bird-dog', '3 × 8 par côté', 'À quatre pattes, bras et jambe opposés.'], ['Mountain climbers', '3 × 20 s', 'Mains au sol, genoux vers la poitrine.'], ['Chaise contre le mur', '3 × 30 s', 'Respire, tiens.']]],
+  rayonne: [[['Squats lents', '3 × 15', '3 secondes pour descendre.'], ['Pompes sur les genoux', '3 × 12', 'Ou quelques pompes complètes.'], ['Fentes marchées', '3 × 12', 'Dans le couloir ou sur place.'], ['Gainage', '3 × 30 s', 'Corps aligné.'], ['Burpees sans saut', '3 × 8', 'Descends, pieds en arrière, reviens, relève-toi.']],
+    [['Squat sumo', '3 × 15', 'Pieds écartés, pointes vers l\'extérieur.'], ['Dips sur une chaise', '3 × 10', 'Chaise stable, contre un mur.'], ['Pont fessier sur une jambe', '3 × 10 par jambe', 'Le bassin reste droit.'], ['Gainage latéral', '3 × 20 s par côté', 'Sur l\'avant-bras, genoux au sol si besoin.'], ['Jumping jacks', '3 × 45 s', 'Termine fort.']]]
+};
+const CSOFT = [['Marche tranquille', '15 min', 'Dehors si possible.'], ['Chat-vache', '1 min', 'À quatre pattes, arrondis puis creuse le dos.'], ['Posture de l\'enfant', '1 min', 'Assise sur les talons, bras devant, front au sol.'], ['Étirement des cuisses', '1 min', 'Assise, jambes tendues, penche-toi doucement.'], ['Respiration lente', '3 min', '4 secondes pour inspirer, 6 pour expirer.']];
+const FOOD = [['eau', 'Boire environ 1,5 L d\'eau'], ['prot', 'Des protéines à chaque repas : légumineuses, œufs, laitages, tofu, poisson si tu en manges'], ['fer', 'Du fer avec de la vitamine C (lentilles et citron, épinards et poivron…)'], ['fl', 'Des fruits et légumes variés, au moins 5 portions']];
+const CZ = { soft: false, done: {} };
+const cSessions = () => Z().corps.sessions;
+const cPhase = () => { const n = cSessions().length; return CPH.slice().reverse().find(p => n >= p.from); };
+const cWeek = () => cSessions().filter(s => inWeek(s.date)).length;
+function vCorpsZ() {
+  const ph = cPhase(), ni = CPH.indexOf(ph), next = CPH[ni + 1], n = cSessions().length, wk = cWeek(), k = todayISO();
+  const doneToday = cSessions().some(s => s.date === k), per = inPeriod(k);
+  const tpl = CPROG[ph.k][n % 2], list = CZ.soft ? CSOFT : [WARM, ...tpl, COOL];
+  const fd = Z().corps.food[k] || {}, fn = FOOD.filter(f => fd[f[0]]).length;
+  return `${pageHead('Corps', 'Chez toi, sans matériel. Pour l\'énergie.', 'corpsz')}
+  <div class="zhero">${ring(wk / 3, `${wk}<small>/3</small>`, 'séances cette semaine', 'mint')}
+    <div class="zph">${CPH.map((p, i) => `<div class="${i < ni ? 'ok' : i === ni ? 'cur' : ''}"><b>${p.n}</b><span>${i < ni ? 'Acquis' : i === ni ? (next ? `${n - p.from}/${next.from - p.from} séances` : `${n} séances`) : `dès ${p.from} séances`}</span></div>`).join('')}</div></div>
+  <section>
+    <div class="row between" style="align-items:baseline"><h2 style="margin:0">${doneToday ? 'Séance faite aujourd\'hui' : CZ.soft ? 'Séance douce' : `Séance ${n % 2 ? 'B' : 'A'} · ${ph.n}`}</h2><span class="small muted">${CZ.soft ? '20 min' : `${ph.min} min`}</span></div>
+    ${per ? `<p class="small" style="margin:6px 0 0;color:var(--rose)">Pendant tes règles, écoute ton corps : la séance douce compte tout autant.</p>` : ''}
+    <div class="seg" style="margin-top:12px"><button data-csoft="0" aria-pressed="${!CZ.soft}"><span class="dot"></span>Séance du jour</button><button data-csoft="1" aria-pressed="${CZ.soft}"><span class="dot"></span>Séance douce</button></div>
+    <div class="checks" style="margin-top:10px">${list.map((e, i) => `<label class="check"><input type="checkbox" data-cex="${i}" ${CZ.done[i] ? 'checked' : ''}><span class="box">${ICON.tick}</span><span class="txt">${e[0]} <b class="num" style="color:var(--gold)">${e[1]}</b><span class="small muted" style="display:block">${e[2]}</span></span></label>`).join('')}</div>
+    <button class="btn" data-csdone style="margin-top:14px;width:100%" ${doneToday ? 'disabled' : ''}>${doneToday ? 'Bravo, repose-toi' : 'Séance terminée'}</button>
+    <p class="hint">${wk >= 3 ? 'Tes 3 séances de la semaine sont faites. Le reste, c\'est du bonus.' : 'Laisse un jour de repos entre deux séances si tu peux.'}</p>
+  </section>
+  <section>
+    <div class="row between" style="align-items:baseline"><h2 style="margin:0">L'énergie dans l'assiette</h2><span class="small muted num">${fn} / ${FOOD.length}</span></div>
+    <div class="checks" style="margin-top:8px">${FOOD.map(([id, t]) => checkbox('fd-' + id, esc(t), 'data-cfood', !!fd[id])).join('')}</div>
+    <p class="hint">Sans viande, pense au fer et aux protéines à chaque repas. Les cartes Alimentation du Flux t'en donnent des idées.</p>
+  </section>`;
+}
+
+/* ----- Routine du soir : 15 minutes ----- */
+const RZ = { t: 0, end: 0 };
+const rItems = () => Z().routine.items;
+const rDone = k => { const l = Z().routine.log[k] || {}; return rItems().filter(i => l[i[0]]).length; };
+const rFull = k => rDone(k) >= rItems().length;
+function rStreak() { let n = 0; for (let i = rFull(todayISO()) ? 0 : 1; i < 400; i++) { if (rFull(iso(addDays(new Date(), -i)))) n++; else break; } return n; }
+function vRoutineZ() {
+  const k = todayISO(), l = Z().routine.log[k] || {}, n = rDone(k), t = rItems().length, st = rStreak();
+  const mins = rItems().reduce((m, i) => m + (Number(i[2]) || 0), 0);
+  const left = RZ.end ? Math.max(0, RZ.end - Date.now()) : 0;
+  const days = Array.from({ length: 14 }, (_, i) => iso(addDays(new Date(), i - 13)));
+  return `${pageHead('Routine', 'Ton quart d\'heure du soir, pour finir la journée en douceur.', 'routinez')}
+  <div class="zhero">${ring(t ? n / t : 0, `${n}<small>/${t}</small>`, n === t ? 'soirée bouclée' : 'ce soir')}
+    <div class="zside"><p class="num" style="font:400 2.4rem/1 var(--serif);color:var(--gold);margin:0">${st}</p><p class="small muted" style="margin:4px 0 12px">soir${st > 1 ? 's' : ''} d'affilée</p>
+    <button class="btn sm" data-rtimer id="rtimer">${left ? `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}` : `Minuteur ${mins} min`}</button></div></div>
+  <div class="zdays">${days.map(d => `<i class="${rFull(d) ? 'on' : rDone(d) ? 'half' : ''} ${d === k ? 'today' : ''}" title="${d}"></i>`).join('')}</div>
+  <div class="checks" style="margin-top:14px">${rItems().map(([id, txt, m]) => `<label class="check"><input type="checkbox" data-rit="${id}" ${l[id] ? 'checked' : ''}><span class="box">${ICON.tick}</span><span class="txt">${esc(txt)} <span class="small muted">· ${m} min</span></span></label>`).join('')}</div>
+  <div class="srow" style="margin-top:12px"><input id="rNote" value="${esc(Z().routine.notes[k] || '')}" placeholder="Ma réussite du jour, en une phrase" style="flex:1"></div>
+  <details class="adv" style="margin-top:14px"><summary>Modifier ma routine</summary>
+    ${rItems().map(([id, txt, m]) => `<div class="srow"><input data-redit="${id}" value="${esc(txt)}" style="flex:1" aria-label="Étape"><input data-rmin="${id}" value="${m}" inputmode="numeric" style="width:54px;text-align:center" aria-label="Minutes"><button class="icon-btn" data-rdel="${id}" aria-label="Supprimer">${delX}</button></div>`).join('')}
+    <div class="srow"><input id="rNew" placeholder="Nouvelle étape" style="flex:1"><button class="btn sm" data-radd>Ajouter</button></div></details>`;
+}
+
+/* ----- Reset du dimanche ----- */
+const RSET = [
+  ['Esprit', [['plan', 'Préparer la semaine à venir'], ['nophone', '1 h sans téléphone'], ['bilan', 'Faire le bilan de la semaine']]],
+  ['Corps', [['sport', 'Sport doux ou étirements'], ['soin', 'Soin : visage, cheveux, ongles'], ['repas', 'Préparer mes repas de la semaine']]],
+  ['Foi', [['istighfar', 'Istighfar et invocations'], ['rappel', 'Un rappel ou une conférence']]],
+  ['Maison', [['range', 'Ranger et nettoyer mon espace'], ['lessive', 'Lessive'], ['draps', 'Changer les draps']]],
+  ['Mes rituels', [['sidr', 'Bain de sidr'], ['baqara', 'Écouter sourate Al-Baqara'], ['tadabbur', 'Méditer un passage du Coran'], ['nuit', 'Prière de la nuit', 'pause']]]
+];
+const sundayOf = (d = new Date()) => { const x = new Date(d); x.setDate(x.getDate() + (7 - x.getDay()) % 7); return iso(x); };
+function resetW(k = sundayOf()) { const w = Z().reset.w; return (w[k] = w[k] || { c: {}, b: {}, done: false }); }
+const rsItems = k => RSET.flatMap(g => g[1]).filter(i => !(i[2] === 'pause' && inPeriod(k)));
+const rsDone = k => { const w = Z().reset.w[k]; return w ? rsItems(k).filter(i => w.c[i[0]]).length : 0; };
+function vResetZ() {
+  const k = sundayOf(), w = resetW(k), n = rsDone(k), t = rsItems(k).length, isSun = new Date().getDay() === 0;
+  const hist = Object.keys(Z().reset.w).filter(x => Z().reset.w[x].done).length;
+  return `${pageHead('Reset', isSun ? 'C\'est dimanche : ton après-midi pour repartir à neuf.' : `Dimanche ${parseDate(k).getDate()}, l'après-midi : une demi-journée pour toi.`, 'resetz')}
+  <div class="zhero">${ring(t ? n / t : 0, `${n}<small>/${t}</small>`, w.done ? 'reset complet' : 'cette semaine', 'rose')}
+    <div class="zside"><p class="num" style="font:400 2.4rem/1 var(--serif);color:var(--rose);margin:0">${hist}</p><p class="small muted" style="margin:4px 0 0">reset${hist > 1 ? 's' : ''} complet${hist > 1 ? 's' : ''}</p></div></div>
+  ${RSET.map(([g, items]) => `<p class="gt">${g}</p><div class="checks">${items.map(([id, txt, f]) => { const off = f === 'pause' && inPeriod(k); return `<label class="check ${off ? 'off' : ''}"><input type="checkbox" data-rs="${id}" ${w.c[id] ? 'checked' : ''} ${off ? 'disabled' : ''}><span class="box">${ICON.tick}</span><span class="txt">${txt}${off ? ' <span class="small muted">· en pause pendant les règles</span>' : ''}</span></label>`; }).join('')}</div>`).join('')}
+  <section><h2>Bilan de la semaine</h2>
+    ${[['ok', 'Ce qui a marché'], ['ko', 'Ce qui a coincé'], ['prio', 'Ma priorité pour la semaine']].map(([id, l]) => `<label class="zlbl" for="rb-${id}">${l}</label><textarea id="rb-${id}" data-rb="${id}" rows="2">${esc(w.b[id] || '')}</textarea>`).join('')}
+  </section>`;
+}
+
+/* ----- Hizya : contenu, communauté, produit ----- */
+const H2 = { add: null };
+const hz = () => Z().hizya;
+const hWeekVid = () => hz().videos.filter(v => inWeek(v.date)).length;
+const hSubs = () => { const s = hz().subs; return s.length ? s[s.length - 1].n : 0; };
+function hChart() {
+  const s = hz().subs.slice(-20); if (s.length < 2) return '<p class="small muted" style="margin:10px 0 0">La courbe apparaîtra dès ta deuxième mise à jour.</p>';
+  const mx = Math.max(hz().goal, ...s.map(x => x.n)), W = 300, H = 90;
+  const pts = s.map((x, i) => `${(i / (s.length - 1) * W).toFixed(1)},${(H - x.n / mx * H).toFixed(1)}`).join(' ');
+  return `<svg viewBox="0 -8 ${W} ${H + 16}" class="hchart" aria-label="Courbe des abonnés"><line x1="0" x2="${W}" y1="${(H - hz().goal / mx * H).toFixed(1)}" y2="${(H - hz().goal / mx * H).toFixed(1)}" stroke="var(--rose)" stroke-dasharray="3 5"/><polyline points="${pts}" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${s.map((x, i) => i === s.length - 1 ? `<circle cx="${(i / (s.length - 1) * W).toFixed(1)}" cy="${(H - x.n / mx * H).toFixed(1)}" r="4" fill="var(--gold)"/>` : '').join('')}</svg>`;
+}
+function vHizyaZ() {
+  const h = hz(), wv = hWeekVid(), subs = hSubs(), k = todayISO();
+  const wks = Math.max(1, Math.ceil(dBetween(k, '2026-12-31') / 7)), need = Math.max(0, h.goal - subs);
+  const ws = weekStart(), days = Array.from({ length: 7 }, (_, i) => iso(addDays(parseDate(ws), i)));
+  const mo = k.slice(0, 7), sales = h.sales.filter(x => x.date.slice(0, 7) === mo).reduce((m, x) => m + (Number(x.n) || 1), 0);
+  const pd = h.product.filter(p => p.done).length;
+  return `${pageHead('Hizya', 'Ta création de contenu, ta communauté et ton produit.', 'hizyaz')}
+  <div class="zhero">${ring(wv / h.wk, `${wv}<small>/${h.wk}</small>`, 'vidéos cette semaine')}
+    <div class="zside"><button class="btn sm" data-hvid>+ Vidéo publiée</button></div></div>
+  ${H2.add === 'vid' ? `<div class="srow" style="margin-top:10px"><input id="hVidT" placeholder="Titre ou sujet (facultatif)" style="flex:1"><button class="btn sm" data-hvidok>Ajouter</button></div>` : ''}
+  <section><div class="row between" style="align-items:baseline"><h2 style="margin:0">Stories</h2><span class="small muted">${days.filter(d => h.stories[d]).length} jour${days.filter(d => h.stories[d]).length > 1 ? 's' : ''} cette semaine</span></div>
+    <div class="hstory">${days.map(d => `<button data-hst="${d}" aria-pressed="${!!h.stories[d]}" ${d > k ? 'disabled' : ''}><span>${DAY_SHORT.format(parseDate(d)).replace('.', '').slice(0, 3)}</span></button>`).join('')}</div></section>
+  <section><div class="row between" style="align-items:baseline"><h2 style="margin:0">Abonnés</h2><span class="small muted">objectif ${h.goal.toLocaleString('fr-FR')} avant 2027</span></div>
+    <p class="num" style="font:400 3rem/1.1 var(--serif);margin:8px 0 0">${subs.toLocaleString('fr-FR')}</p>
+    <p class="small muted" style="margin:2px 0 0">${need ? `Encore ${need.toLocaleString('fr-FR')}, soit environ ${Math.ceil(need / wks).toLocaleString('fr-FR')} par semaine d'ici la fin de l'année.` : 'Objectif atteint. Place au suivant.'}</p>
+    ${hChart()}
+    <div class="srow" style="margin-top:12px"><input id="hSubs" inputmode="numeric" placeholder="Nombre d'abonnés aujourd'hui" style="flex:1"><button class="btn sm" data-hsubs>Mettre à jour</button></div></section>
+  <section><div class="row between" style="align-items:baseline"><h2 style="margin:0">Mon produit</h2><span class="small muted num">${pd} / ${h.product.length}</span></div>
+    <div class="bar" style="margin-top:10px"><i style="width:${h.product.length ? pd / h.product.length * 100 : 0}%;background:var(--rose)"></i></div>
+    <div class="checks" style="margin-top:8px">${h.product.map(p => `<label class="check"><input type="checkbox" data-hpr="${p.id}" ${p.done ? 'checked' : ''}><span class="box">${ICON.tick}</span><span class="txt">${esc(p.t)}</span></label>`).join('')}</div>
+    <details class="adv"><summary>Modifier les étapes</summary>${h.product.map(p => `<div class="srow"><input data-hpe="${p.id}" value="${esc(p.t)}" style="flex:1" aria-label="Étape"><button class="icon-btn" data-hpd="${p.id}" aria-label="Supprimer">${delX}</button></div>`).join('')}<div class="srow"><input id="hPNew" placeholder="Nouvelle étape" style="flex:1"><button class="btn sm" data-hpa>Ajouter</button></div></details></section>
+  <section><div class="row between" style="align-items:baseline"><h2 style="margin:0">Ventes</h2><span class="small muted">${sales} ce mois-ci</span></div>
+    <div class="srow" style="margin-top:10px"><input id="hSaleN" inputmode="numeric" placeholder="Nombre" style="width:84px"><input id="hSaleT" placeholder="Note (facultatif)" style="flex:1"><button class="btn sm" data-hsale>Noter</button></div></section>
+  <section><h2>Journal</h2>
+    <textarea id="hNote" rows="3" placeholder="Une idée de vidéo, ce que tu as appris, ce qui a plu…"></textarea><button class="btn sm" data-hnote style="margin-top:8px">Garder</button>
+    ${h.notes.slice().reverse().slice(0, 8).map(n => `<div class="idea"><p>${esc(n.t)}<time>${DAY_LONG.format(parseDate(n.date))}</time></p><button class="icon-btn" data-hnd="${n.id}" aria-label="Supprimer">${delX}</button></div>`).join('')}</section>
+  <section><h2>Cette semaine</h2>${h.videos.filter(v => inWeek(v.date)).map(v => `<div class="idea"><p>${esc(v.t || 'Vidéo')}<time>${DAY_LONG.format(parseDate(v.date))}</time></p><button class="icon-btn" data-hvd="${v.id}" aria-label="Supprimer">${delX}</button></div>`).join('') || '<p class="small muted">Tes vidéos publiées apparaîtront ici.</p>'}</section>`;
+}
+
+/* ----- Apprendre : lire l'arabe + business selon les règles islamiques ----- */
+const BIZP = [
+  ['L\'intention et les bases', ['Ton intention transforme ton travail en adoration.', 'Le commerce est licite, l\'usure (riba) ne l\'est pas.', 'L\'honnêteté est la base de tout le reste.'], '« Le commerçant véridique et digne de confiance sera avec les prophètes, les véridiques et les martyrs. » (Tirmidhi 1209)', 'Écris en 3 phrases pourquoi tu fais ce business et ce que tu refuses d\'y faire.'],
+  ['Ce qui est interdit', ['Le riba : prêter ou emprunter avec intérêt.', 'Le gharar : une vente trop floue (on ne sait pas vraiment ce qu\'on achète).', 'Vendre ce qu\'on ne possède pas encore, sans cadre clair.', 'Tromper sur le produit, et les produits illicites.'], '« Celui qui trompe n\'est pas des nôtres. » (Muslim 102)', 'Passe ton projet au crible de ces 4 points et note ce qui doit changer.'],
+  ['Ta cliente idéale', ['Pas « tout le monde » : une personne précise.', 'Son âge, ses journées, ce qui la bloque, ce qu\'elle rêve d\'avoir.', 'Tu crées tes vidéos pour elle, pas pour l\'algorithme.'], '', 'Décris ta cliente idéale en 5 lignes, comme si tu la présentais à une amie.'],
+  ['Ton offre en une phrase', ['Le problème de ta cliente.', 'Ce que ton produit change pour elle.', 'Pourquoi te faire confiance à toi.'], '', 'Écris : « J\'aide … à … grâce à … ».'],
+  ['Tester avant de fabriquer', ['Un sondage en story.', 'Une liste d\'attente.', 'Une précommande claire : prix, description, délai (le salam).'], '« Ne vends pas ce qui n\'est pas en ta possession. » (Abu Dawud 3503) : d\'où l\'importance d\'un cadre clair comme le salam.', 'Pose ta question à 10 personnes de ta cible et note leurs réponses.'],
+  ['Le prix juste', ['Coût du produit + envoi + ton temps + ta marge.', 'Pas de faux prix barré ni de fausse rareté.', 'La souplesse avec la cliente est une bénédiction.'], '« Qu\'Allah fasse miséricorde à un homme facile quand il vend et quand il achète. » (Bukhari 2076)', 'Calcule ton prix ligne par ligne.'],
+  ['Créer du contenu utile', ['Une vidéo = une idée.', 'La promesse dans les premières secondes.', 'La régularité : tes 3 vidéos par semaine.'], '« Allah aime, lorsque l\'un de vous fait un travail, qu\'il le fasse avec excellence. » (Bayhaqi)', 'Note 9 idées de vidéos : 3 conseils, 3 coulisses, 3 histoires.'],
+  ['Construire une communauté', ['Répondre aux commentaires et aux messages.', 'Montrer les coulisses en story.', 'Mille vraies fans valent mieux qu\'un million de passantes.'], '', 'Pendant une semaine, réponds à chaque commentaire.'],
+  ['Vendre sans pression', ['Vendre, c\'est aider quelqu\'un à résoudre son problème.', 'Dire aussi ce que le produit ne fait pas.', 'Pas de manipulation par l\'urgence.'], '« S\'ils sont sincères et clairs, leur vente est bénie. » (Bukhari 2079, Muslim 1532)', 'Écris ta page de vente, avec une ligne « Ce produit n\'est pas pour toi si… ».'],
+  ['Servir et garder la confiance', ['Le délai annoncé est un engagement (amana).', 'Une politique de retour claire.', 'Répondre vite aux clientes mécontentes.'], '', 'Écris ta politique de retour en 5 lignes.'],
+  ['Les chiffres et la zakat', ['Chiffre d\'affaires, charges, bénéfice : trois choses différentes.', 'Un tableau simple chaque mois suffit.', 'La zakat du commerce : à vérifier avec une personne de savoir.'], '', 'Crée ton tableau du mois : ventes, dépenses, ce qui reste.'],
+  ['Le cadre en France', ['Déclarer son activité (souvent en micro-entreprise).', 'Déclarer son chiffre d\'affaires et payer ses cotisations.', 'Les seuils et les règles changent : vérifie-les sur autoentrepreneur.urssaf.fr.'], '', 'Vérifie que ton statut correspond bien à ce que tu vends.']
+];
+const bz = () => Z().biz;
+const bizDone = () => BIZP.filter((_, i) => bz().done[i]).length;
+const bizOpen = i => i === 0 || !!bz().done[i - 1];
+const AP = { open: null };
+function vApprZ() {
+  const k = todayISO(), st = bz().study, sd = !!st[k];
+  let streak = 0; for (let i = sd ? 0 : 1; i < 400; i++) { if (st[iso(addDays(new Date(), -i))]) streak++; else break; }
+  const lv = alOpen(4) ? 4 : alOpen(3) ? 3 : alOpen(2) ? 2 : 1;
+  const cur = BIZP.findIndex((_, i) => !bz().done[i]);
+  return `${pageHead('Apprendre', 'Trente minutes par jour, palier après palier.', 'apprz')}
+  <div class="zhero">${ring(sd ? 1 : 0, sd ? '✓' : '30', sd ? 'fait aujourd\'hui' : 'minutes aujourd\'hui', 'mint')}
+    <div class="zside"><p class="num" style="font:400 2.4rem/1 var(--serif);color:var(--mint);margin:0">${streak}</p><p class="small muted" style="margin:4px 0 12px">jour${streak > 1 ? 's' : ''} d'affilée</p>
+    <button class="btn sm" data-study ${sd ? 'disabled' : ''}>${sd ? 'Bravo' : 'J\'ai étudié 30 min'}</button></div></div>
+  <button class="today-item" data-goto="arabe" style="margin-top:18px">${miniOrb(alKnown(lv) / alPool(lv).length, 'arabe', true)}<span><b>Lire l'arabe · palier ${lv}</b><span class="s">${ALV[lv - 1].t} : ${alKnown(lv)} acquis sur ${alPool(lv).length}</span></span>${ICON.chev}</button>
+  <section><div class="row between" style="align-items:baseline"><h2 style="margin:0">Business et règles islamiques</h2><span class="small muted num">${bizDone()} / ${BIZP.length}</span></div>
+    <div class="bar" style="margin-top:10px"><i style="width:${bizDone() / BIZP.length * 100}%;background:var(--mint)"></i></div>
+    <div class="bpal">${BIZP.map((p, i) => { const op = bizOpen(i), dn = !!bz().done[i], show = AP.open === i || (AP.open == null && i === cur);
+      return `<div class="bp ${dn ? 'ok' : ''} ${op ? '' : 'lock'} ${show ? 'open' : ''}"><button class="bph" data-bpo="${i}" ${op ? '' : 'disabled'}><i>${dn ? ICON.tick : i + 1}</i><b>${p[0]}</b>${op ? '' : '<span class="small muted">après le palier ' + i + '</span>'}</button>
+      ${show && op ? `<div class="bpb"><ul>${p[1].map(x => `<li>${x}</li>`).join('')}</ul>${p[2] ? `<p class="bps">${p[2]}</p>` : ''}<p class="small"><b>À appliquer :</b> ${p[3]}</p>
+        <textarea data-bpn="${i}" rows="3" placeholder="Ce que tu as fait, ce que tu retiens">${esc(bz().notes[i] || '')}</textarea>
+        <button class="btn sm" data-bpd="${i}" style="margin-top:8px">${dn ? 'Marquer comme non fait' : 'Je l\'ai appliqué'}</button></div>` : ''}</div>`; }).join('')}</div>
+  </section>`;
+}
+
+/* ----- Clics, saisies ----- */
+function zClick(t) {
+  const c = s => t.closest(s); let el; const z = Z();
+  if ((el = c('[data-csoft]'))) { CZ.soft = el.dataset.csoft === '1'; CZ.done = {}; render(); return true; }
+  if (c('[data-csdone]')) {
+    const k = todayISO(); if (z.corps.sessions.some(s => s.date === k)) return true;
+    const before = cPhase(); z.corps.sessions.push({ date: k, soft: CZ.soft }); CZ.done = {}; save(); render();
+    const wk = cWeek(), ph = cPhase();
+    if (ph !== before) reward(15, { big: true, msg: [`Palier ${ph.n}`, ph.s + '. Ton corps a changé, ton programme aussi.'] });
+    else reward(8, { big: wk === 3, msg: wk === 3 ? ['3 séances cette semaine', 'Le croyant fort est meilleur et plus aimé d\'Allah que le croyant faible, et en chacun il y a du bien.', 'Muslim 2664'] : null });
+    return true;
+  }
+  if ((el = c('[data-rtimer]'))) {
+    if (RZ.end) { clearInterval(RZ.t); RZ.end = 0; render(); return true; }
+    RZ.end = Date.now() + rItems().reduce((m, i) => m + (Number(i[2]) || 0), 0) * 60000;
+    RZ.t = setInterval(() => { const b = $('#rtimer'), left = RZ.end - Date.now(); if (left <= 0) { clearInterval(RZ.t); RZ.end = 0; chime(true); toast('Ton quart d\'heure est fini. Belle nuit.'); if (b) b.textContent = 'Terminé'; return; } if (b) b.textContent = `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`; }, 1000);
+    render(); return true;
+  }
+  if ((el = c('[data-rdel]'))) { z.routine.items = z.routine.items.filter(i => i[0] !== el.dataset.rdel); save(); render(); return true; }
+  if (c('[data-radd]')) { const v = ($('#rNew').value || '').trim(); if (!v) return true; z.routine.items.push(['r' + uid(), v, 2]); save(); render(); return true; }
+  if (c('[data-hvid]')) { H2.add = H2.add === 'vid' ? null : 'vid'; render(); setTimeout(() => { const i = $('#hVidT'); i && i.focus(); }, 50); return true; }
+  if (c('[data-hvidok]')) { z.hizya.videos.push({ id: uid(), date: todayISO(), t: ($('#hVidT').value || '').trim() }); H2.add = null; save(); render(); const n = hWeekVid(); reward(5, { big: n === z.hizya.wk, msg: n === z.hizya.wk ? ['Objectif de la semaine atteint', `${n} vidéos publiées. La régularité construit la communauté.`] : null }); return true; }
+  if ((el = c('[data-hvd]'))) { z.hizya.videos = z.hizya.videos.filter(v => v.id !== el.dataset.hvd); save(); render(); unreward(5); return true; }
+  if ((el = c('[data-hst]'))) { const d = el.dataset.hst, on = !z.hizya.stories[d]; if (on) z.hizya.stories[d] = true; else delete z.hizya.stories[d]; save(); render(); on ? reward(1) : unreward(1); return true; }
+  if (c('[data-hsubs]')) { const n = parseInt(($('#hSubs').value || '').replace(/\D/g, ''), 10); if (!n && n !== 0) { toast('Écris le nombre d\'abonnés.'); return true; } const prev = hSubs(), s = z.hizya.subs, k = todayISO(); if (s.length && s[s.length - 1].date === k) s[s.length - 1].n = n; else s.push({ date: k, n }); save(); render();
+    const mile = [100, 250, 500, 1000, 1500, 2000].find(m => prev < m && n >= m); reward(mile ? 10 : 1, { big: !!mile, msg: mile ? [`${mile.toLocaleString('fr-FR')} abonnés`, mile >= 2000 ? 'Ton objectif de l\'année est atteint. Alhamdulillah.' : 'Chaque personne qui te suit a choisi de t\'écouter. Continue de lui donner de la valeur.'] : null }); return true; }
+  if ((el = c('[data-hpd]'))) { z.hizya.product = z.hizya.product.filter(p => p.id !== el.dataset.hpd); save(); render(); return true; }
+  if (c('[data-hpa]')) { const v = ($('#hPNew').value || '').trim(); if (!v) return true; z.hizya.product.push({ id: 'p' + uid(), t: v, done: false }); save(); render(); return true; }
+  if (c('[data-hsale]')) { const n = parseInt($('#hSaleN').value, 10) || 1; z.hizya.sales.push({ date: todayISO(), n, t: ($('#hSaleT').value || '').trim() }); save(); render(); reward(3, { msg: ['Vente notée', 'Qu\'Allah y mette la baraka.'] }); return true; }
+  if (c('[data-hnote]')) { const v = ($('#hNote').value || '').trim(); if (!v) return true; z.hizya.notes.push({ id: uid(), date: todayISO(), t: v }); save(); render(); reward(1); return true; }
+  if ((el = c('[data-hnd]'))) { z.hizya.notes = z.hizya.notes.filter(n => n.id !== el.dataset.hnd); save(); render(); return true; }
+  if (c('[data-study]')) { z.biz.study[todayISO()] = true; save(); render(); reward(4, { msg: ['30 minutes d\'apprentissage', 'Celui qui emprunte un chemin pour chercher une science, Allah lui facilite un chemin vers le Paradis.', 'Muslim 2699'] }); return true; }
+  if ((el = c('[data-bpo]'))) { const i = Number(el.dataset.bpo); AP.open = AP.open === i ? -1 : i; render(); return true; }
+  if ((el = c('[data-bpd]'))) { const i = Number(el.dataset.bpd); if (z.biz.done[i]) { delete z.biz.done[i]; save(); render(); unreward(10); return true; } z.biz.done[i] = todayISO(); AP.open = null; save(); render(); reward(10, { big: true, msg: [`Palier ${i + 1} validé`, i + 1 < BIZP.length ? `Prochain palier : ${BIZP[i + 1][0]}.` : 'Tu as terminé tout le parcours. Qu\'Allah bénisse ton business.'] }); return true; }
+  return false;
+}
+function zChange(t) {
+  const z = Z();
+  if (t.dataset.cex != null) { CZ.done[t.dataset.cex] = t.checked; haptic(); return true; }
+  if (t.dataset.cfood) { const id = t.dataset.cfood.slice(3), k = todayISO(), d = z.corps.food[k] = z.corps.food[k] || {}; if (t.checked) d[id] = true; else delete d[id]; save(); const all = FOOD.every(f => d[f[0]]); if (t.checked) reward(all ? 4 : 1, { msg: all ? ['Assiette complète', 'Ton corps a un droit sur toi.', 'Bukhari 1975'] : null }); else unreward(1); render(); return true; }
+  if (t.dataset.rit) { const k = todayISO(), l = z.routine.log[k] = z.routine.log[k] || {}, was = rFull(k); if (t.checked) l[t.dataset.rit] = true; else delete l[t.dataset.rit]; save(); const full = rFull(k); if (t.checked) reward(full && !was ? 6 : 1, { big: full && !was, msg: full && !was ? ['Soirée bouclée', 'Bonne nuit. Demain commence ce soir.'] : null }); else unreward(1); render(); return true; }
+  if (t.id === 'rNote') { z.routine.notes[todayISO()] = t.value.trim(); save(); return true; }
+  if (t.dataset.redit) { const it = z.routine.items.find(i => i[0] === t.dataset.redit); if (it && t.value.trim()) { it[1] = t.value.trim(); save(); } return true; }
+  if (t.dataset.rmin) { const it = z.routine.items.find(i => i[0] === t.dataset.rmin); if (it) { it[2] = Math.max(1, Math.min(60, parseInt(t.value, 10) || 1)); save(); render(); } return true; }
+  if (t.dataset.rs) { const k = sundayOf(), w = resetW(k); if (t.checked) w.c[t.dataset.rs] = true; else delete w.c[t.dataset.rs]; const full = rsDone(k) >= rsItems(k).length, was = w.done; w.done = full; save(); if (t.checked) reward(full && !was ? 20 : 2, { big: full && !was, msg: full && !was ? ['Reset complet', 'Ta semaine peut commencer, légère et en ordre.'] : null }); else unreward(2); render(); return true; }
+  if (t.dataset.rb) { resetW().b[t.dataset.rb] = t.value; save(); return true; }
+  if (t.dataset.hpr) { const p = z.hizya.product.find(x => x.id === t.dataset.hpr); if (p) { p.done = t.checked; save(); t.checked ? reward(4, { msg: ['Étape du produit', esc(p.t)] }) : unreward(4); render(); } return true; }
+  if (t.dataset.hpe) { const p = z.hizya.product.find(x => x.id === t.dataset.hpe); if (p && t.value.trim()) { p.t = t.value.trim(); save(); } return true; }
+  if (t.dataset.bpn != null) { z.biz.notes[t.dataset.bpn] = t.value; save(); return true; }
+  return false;
 }
 
 /* =====================================================================
@@ -3484,14 +3925,14 @@ function cycleChange(t) {
 const GARDEN = [
   { k: 'foi', name: 'Foi', a: 0 },
   { k: 'cycle', name: 'Cycle', a: -52 },
-  { k: 'corps', name: 'Corps', a: 52, soon: true },
-  { k: 'routine', name: 'Routine', a: -110, soon: true },
-  { k: 'reset', name: 'Reset', a: 110, soon: true },
-  { k: 'hizya', name: 'Hizya', a: -154, soon: true },
-  { k: 'appr', name: 'Apprendre', a: 154, soon: true }
+  { k: 'corps', name: 'Corps', a: 52 },
+  { k: 'routine', name: 'Routine', a: -110 },
+  { k: 'reset', name: 'Reset', a: 110 },
+  { k: 'hizya', name: 'Hizya', a: -154 },
+  { k: 'appr', name: 'Apprendre', a: 154 }
 ];
 const GSTAGES = ['Graine', 'Pousse', 'Arbuste', 'Arbre en fleurs', 'Grenadier'];
-const GROW = { foi: [9, 90, 300, 800], cycle: [2, 12, 35, 80] };
+const GROW = { foi: [9, 90, 300, 800], cycle: [2, 12, 35, 80], appr: [3, 40, 120, 240], corps: [1, 8, 24, 48], routine: [2, 20, 70, 160], reset: [3, 20, 60, 130], hizya: [2, 20, 60, 140] };
 const LEVEL_TXT = ['', 'La graine a percé la terre. Ce qui est petit et régulier finit par grandir.', 'Ta pousse est devenue un arbuste. Les racines se forment dans la constance.', 'Ton arbre est en fleurs. Continue : les fruits viennent après les fleurs.', 'Ton grenadier donne ses premiers fruits. La grenade est citée parmi les fruits des jardins du Paradis (Coran 55:68).'];
 function growValue(k) {
   if (k === 'foi') {
@@ -3500,6 +3941,12 @@ function growValue(k) {
     Object.values(S.cycle.ad).forEach(d => { n += Object.keys(d).length; });
     return n;
   }
+  const z = Z();
+  if (k === 'appr') return alPoints() + wordsKnown() * 2 + bizDone() * 10 + Object.keys(z.biz.study).length * 2;
+  if (k === 'corps') return z.corps.sessions.length + Math.floor(Object.values(z.corps.food).reduce((m, d) => m + Object.keys(d).length, 0) / 6);
+  if (k === 'routine') return Object.values(z.routine.log).reduce((m, d) => m + Object.keys(d).length, 0);
+  if (k === 'reset') return Object.values(z.reset.w).reduce((m, w) => m + Object.keys(w.c || {}).length + (w.done ? 5 : 0), 0);
+  if (k === 'hizya') { const h = z.hizya; return h.videos.length * 3 + Object.keys(h.stories).length + h.product.filter(p => p.done).length * 4 + h.sales.length + h.notes.length; }
   if (k === 'cycle') { const days = new Set([...Object.keys(S.cycle.sym), ...Object.keys(S.cycle.ad)]); return days.size + S.cycle.periods.length * 3 + S.cycle.fast.made * 2; }
   return 0;
 }
@@ -3546,7 +3993,7 @@ function vOrbite() {
     const a = p.a * Math.PI / 180, x = RX * Math.sin(a), y = -RY * Math.cos(a), sc = .8 + .32 * ((y + RY) / (2 * RY));
     const g = growth(p.k), lbl = p.soon ? 'Bientôt' : GSTAGES[g.st];
     const aria = p.soon ? `${p.name} : bientôt` : `${p.name} : ${lbl}${g.st < 4 ? `, prochain palier dans ${g.next}` : ''}`;
-    return `<g class="plant ${p.soon ? 'soon' : ''}" ${p.soon ? `data-soon="${p.name}"` : `data-goto="${p.k}"`} role="button" tabindex="0" aria-label="${aria}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+    return `<g class="plant ${p.soon ? 'soon' : ''}" ${p.soon ? `data-soon="${p.name}"` : `data-goto="${p.go || p.k}"`} role="button" tabindex="0" aria-label="${aria}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
       <rect x="-32" y="-78" width="64" height="112" fill="transparent"/>
       <g transform="scale(${sc.toFixed(3)})"><g class="sway" style="animation-delay:${(-i * .7).toFixed(1)}s">${plantSvg(g.st, g.fruits, p.soon)}</g></g>
       <text class="pl-n" y="${(15 * sc + 4).toFixed(1)}">${p.name}</text>
@@ -3560,6 +4007,8 @@ function vOrbite() {
     <svg viewBox="-200 -205 400 355" aria-label="Ton jardin : un module par plante">
       <defs><radialGradient id="srcGlow"><stop offset="0" stop-color="var(--water)" stop-opacity=".5"/><stop offset=".5" stop-color="var(--water)" stop-opacity=".12"/><stop offset="1" stop-color="var(--water)" stop-opacity="0"/></radialGradient></defs>
       ${stars}
+      <path class="gmoon" d="M168 -186a16 16 0 1 0 12 26 13 13 0 1 1 -12 -26z"/>
+      <g class="flies">${Array.from({ length: Math.min(9, Math.floor(nourDay() / 4)) }, (_, i) => { const a = i * 137.5 * Math.PI / 180, r = 60 + (i * 23) % 90; return `<circle cx="${(Math.cos(a) * r * 1.3).toFixed(0)}" cy="${(Math.sin(a) * r * .75 - 10).toFixed(0)}" r="1.8" style="animation-delay:${(-i * 1.3).toFixed(1)}s"/>`; }).join('')}</g>
       <ellipse class="allee" rx="${RX}" ry="${RY}"/>
       <circle id="sunGlowC" r="${(56 + 44 * sunLevel()).toFixed(0)}" fill="url(#srcGlow)" style="opacity:${(.35 + .65 * sunLevel()).toFixed(2)};transition:r .8s,opacity .8s"/>
       <ellipse rx="44" ry="15" fill="var(--water)" opacity=".13"/>
@@ -3577,8 +4026,11 @@ function vOrbite() {
     <div class="today-list">
       ${(() => { const d = S.flux.day.d === todayISO() ? S.flux.day.n : 0; return `<button class="today-item" data-goto="flux">${miniOrb(Math.min(1, d / 5), 'flux')}<span><b>${d >= 5 ? 'Esprit nourri aujourd\'hui' : 'Flux · 5 cartes pour ton esprit'}</b><span class="s">${d ? `${d} carte${d > 1 ? 's' : ''} lue${d > 1 ? 's' : ''} aujourd'hui` : 'Coran, récits, savoir, psychologie'}</span></span>${ICON.chev}</button>`; })()}
       ${(() => { const n = needOf(k), dn = dayDone(k), paused = inPeriod(k); return `<button class="today-item" data-goto="habitudes">${miniOrb(n ? dn / n : 0, 'foi', true)}<span><b>${dn === n ? 'Habitudes du jour complètes' : `${dn} habitude${dn > 1 ? 's' : ''} sur ${n} aujourd'hui`}</b><span class="s">${paused ? 'Prières en pause pendant tes règles' : (() => { const pn = prayerNow(), nx = nextPrayer(); return pn && !(S.faith.log[pn.k] || {})[pn.id] ? `${PNAMES[pn.id]} en cours · reste ${leftTxt(pn.end - new Date())}` : nx ? `Prochaine : ${PNAMES[nx.id]} à ${hm(nx.start)}` : `Régularité ${Math.round(faithScore().pct * 100)} % sur 30 jours`; })()}</span></span>${ICON.chev}</button>`; })()}
+      ${(() => { const wk = cWeek(); return `<button class="today-item" data-goto="corps">${miniOrb(wk / 3, 'corps')}<span><b>${cSessions().some(s => s.date === k) ? 'Séance faite aujourd\'hui' : `Séance ${cPhase().n}`}</b><span class="s">${wk}/3 séances cette semaine</span></span>${ICON.chev}</button>`; })()}
+      ${(() => { const n = rDone(k), t = rItems().length; return `<button class="today-item" data-goto="routine">${miniOrb(t ? n / t : 0, 'routine')}<span><b>${n === t ? 'Soirée bouclée' : 'Ta routine du soir'}</b><span class="s">${n}/${t} étapes · ${rStreak()} soir${rStreak() > 1 ? 's' : ''} d'affilée</span></span>${ICON.chev}</button>`; })()}
+      ${new Date().getDay() === 0 || new Date().getDay() === 6 ? (() => { const s = sundayOf(), n = rsDone(s), t = rsItems(s).length; return `<button class="today-item" data-goto="reset">${miniOrb(t ? n / t : 0, 'reset')}<span><b>${new Date().getDay() === 0 ? 'Ton reset, cet après-midi' : 'Demain, ton reset'}</b><span class="s">${n}/${t} cases</span></span>${ICON.chev}</button>`; })() : ''}
       <button class="today-item" data-goto="cycle">${miniOrb(ci ? Math.min(1, ci.day / ci.len) : 0, 'cycle')}<span><b>${!ci ? 'Commencer le suivi du cycle' : ci.cur ? `Règles · jour ${dBetween(ci.last.start, k) + 1}` : `Jour ${ci.day} du cycle`}</b><span class="s">${!ci ? 'Note le début de tes prochaines règles' : ci.cur ? `${Object.keys(S.cycle.ad[k] || {}).length} adoration${Object.keys(S.cycle.ad[k] || {}).length > 1 ? 's' : ''} aujourd'hui` : ci.left >= 0 ? `Règles dans ${ci.left} jour${ci.left > 1 ? 's' : ''}` : `Règles attendues depuis ${-ci.left} j`}</span></span>${ICON.chev}</button>
-      <button class="today-item" data-goto="arabe">${miniOrb(wordsKnown() / WORDS.length, 'arabe', true)}<span><b>Réviser 5 mots du Coran</b><span class="s">${wordsKnown()} mots maîtrisés sur ${WORDS.length}</span></span>${ICON.chev}</button>
+      ${(() => { const lv = alOpen(3) ? 3 : alOpen(2) ? 2 : 1, n = alKnown(lv), t = alPool(lv).length; return `<button class="today-item" data-goto="arabe">${miniOrb(n / t, 'arabe', true)}<span><b>Lire l'arabe · ${ALV[lv - 1].t.toLowerCase()}</b><span class="s">${n} lettre${n > 1 ? 's' : ''} acquise${n > 1 ? 's' : ''} sur ${t}</span></span>${ICON.chev}</button>`; })()}
     </div>
   </section>`;
 }
@@ -3594,7 +4046,7 @@ function startGarden() {
 /* =====================================================================
    15. RENDU & NAVIGATION
    ===================================================================== */
-const TABS = ['orbite', 'flux', 'foi', 'cycle', 'parcours', 'corps', 'routine', 'argent', 'business'];
+const TABS = ['orbite', 'flux', 'foi', 'cycle', 'corps', 'routine', 'reset', 'hizya', 'appr', 'parcours', 'argent', 'business'];
 const CVIEWS = ['entrainement', 'nutrition', 'soin'];
 let tab = 'orbite', missedDismissed = false;
 function render(animate) {
@@ -3604,21 +4056,21 @@ function render(animate) {
   checkUnlocks();
   document.documentElement.classList.toggle('flux-on', tab === 'flux');
   if (tab !== 'flux' && FXS.io) { FXS.io.disconnect(); FXS.io = null; }
-  app.innerHTML = { orbite: vOrbite, cycle: vCycle, flux: vFlux, parcours: vParcours, foi: () => F.view === 'arabe' ? vArabe() : vHabits(), corps: () => C.view === 'nutrition' ? vNutrition() : C.view === 'soin' ? vSoin() : vTraining(), routine: vRoutine, argent: () => A.view === 'heures' ? vHeures() : vBudget(), business: vBusiness, z: () => window.__z ? window.__z.view() : vOrbite() }[tab]();
+  app.innerHTML = { orbite: vOrbite, cycle: vCycle, reset: vResetZ, hizya: vHizyaZ, appr: vApprZ, flux: vFlux, parcours: vParcours, foi: () => F.view === 'arabe' ? vArabe() : vHabits(), corps: vCorpsZ, routine: vRoutineZ, argent: () => A.view === 'heures' ? vHeures() : vBudget(), business: vBusiness, z: () => window.__z ? window.__z.view() : vOrbite() }[tab]();
   coreGlyph();
   if (tab === 'orbite') startGarden();
   checkGarden();
   if ((tab === 'orbite' || tab === 'foi') && !missedDismissed) setTimeout(missedOverlay, 700);
   if (tab === 'flux') bindFlux();
   if (tab === 'parcours') bindParcours();
-  if (tab === 'foi' && F.view === 'arabe') { if (quiz && !quiz.answered) drawQuiz(); else nextQuiz(); }
+  if (tab === 'foi' && F.view === 'arabe') { if (AV !== 'mots' || !alOpen(5)) drawLQ(); else if (quiz && !quiz.answered) drawQuiz(); else nextQuiz(); }
   if (tab === 'argent' && A.view === 'heures') bindDial();
 }
 function setAView(v) { A.view = v; try { localStorage.setItem('zia-argent-view', v); } catch (e) {} }
 function setFView(v) { F.view = v; try { localStorage.setItem('zia-foi-view', v); } catch (e) {} }
 function go(t) {
   if (tab === 'z') zLock();
-  if (CVIEWS.includes(t)) { setCView(t); if (tab === 'corps') { render(); window.scrollTo(0, 0); return; } t = 'corps'; }
+  if (CVIEWS.includes(t)) t = 'corps';
   if (t === 'arabe' || t === 'habitudes') { setFView(t); if (tab === 'foi') { render(); window.scrollTo(0, 0); return; } t = 'foi'; }
   if (t === 'heures' || t === 'budget') { if (tab === 'argent' && A.view === 'heures' && $('#fDate')) readForm(); setAView(t); if (tab === 'argent') { render(); window.scrollTo(0, 0); return; } t = 'argent'; }
   if (!TABS.includes(t)) return;
@@ -3635,7 +4087,7 @@ function go(t) {
    Toucher le noyau : la roue s'ouvre, on touche un module.
    Appuyer et glisser : on vise un module et on relâche pour y aller.
    Appui long, ou toucher le noyau quand la roue est ouverte : retour à l'orbite. */
-const NAV = [['foi', 'Foi'], ['flux', 'Flux'], ['cycle', 'Cycle']];
+const NAV = [['foi', 'Foi'], ['cycle', 'Cycle'], ['corps', 'Corps'], ['routine', 'Routine'], ['flux', 'Flux'], ['reset', 'Reset'], ['hizya', 'Hizya'], ['appr', 'Apprendre']];
 const NAV_A0 = -80, NAV_SPAN = 160;
 const W8 = { open: false, hi: null, press: null, lp: 0 };
 const navAngle = i => NAV_A0 + NAV_SPAN / (NAV.length - 1) * i;
@@ -3711,6 +4163,8 @@ document.addEventListener('click', e => {
   const t = e.target, c = sel => t.closest(sel);
   let el;
   if (cycleClick(t)) return;
+  if (alifClick(t)) return;
+  if (zClick(t)) return;
   if ((el = c('[data-open]'))) { el.dataset.open === 'settings' ? openSettings() : openIdeas(); return; }
   // Foi
   if ((el = c('[data-fview]'))) { go(el.dataset.fview); return; }
@@ -3936,6 +4390,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (cycleChange(t)) return;
+  if (zChange(t)) return;
   if (t.dataset.chk) {
     if (t.checked) S.checks[t.dataset.chk] = true; else delete S.checks[t.dataset.chk];
     save(); askPersist(); refreshParcours(); if (t.checked) reward(3); else unreward(3); return;

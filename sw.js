@@ -1,5 +1,5 @@
 /* Zia — service worker : tout fonctionne hors ligne. */
-const VERSION = 'zia-v1.0.1';
+const VERSION = 'zia-v2.0.0';
 const FILES = [
   './', './index.html', './app.js', './manifest.json',
   './amiri-400.woff2', './amiri-700.woff2', './serif-400.woff2', './serif-400i.woff2',
