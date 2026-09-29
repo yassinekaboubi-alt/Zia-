@@ -538,7 +538,7 @@ function tween(dur, fn, done) {
 
 const COACH = {
   orbite: ['Ton jardin', 'Chaque plante est un module. Elle passe de graine à pousse, arbuste, arbre en fleurs, puis grenadier, au rythme de ce que tu y fais. Touche une plante pour y aller, touche la source au centre pour ouvrir le Flux. Partout dans l\'app, le bouton rond en bas ouvre la roue des modules : touche-le, ou appuie et glisse vers un module.'],
-  corpsz: ['Ton corps, à la maison', 'Trois séances par semaine, sans matériel. Trois paliers : Éveil, puis Élan dès 12 séances, puis Rayonne dès 30. Coche chaque exercice, puis « Séance terminée ». Pendant tes règles, la séance douce compte tout autant.'],
+  corpsz: ['Ton corps, en trois onglets', 'Séance : trois séances par semaine à la maison, avec trois paliers (Éveil, Élan dès 12 séances, Rayonne dès 30), et une séance douce pendant les règles. Assiette : tes 4 repères d\'énergie sans viande et des idées de repas. Soin : les jauges de la fitra (40 nuits) et de tes soins.'],
   routinez: ['Ton quart d\'heure du soir', 'Coche chaque étape ce soir. Toutes cochées, la soirée est bouclée et ta série continue. Tu peux lancer le minuteur et modifier les étapes en bas.'],
   resetz: ['Ton reset du dimanche', 'Une demi-journée, le dimanche après-midi, pour ton esprit, ton corps, ta foi, ta maison et tes rituels. Chaque case allume de la lumière ; tout coché, c\'est un reset complet. Termine par ton bilan.'],
   hizyaz: ['Hizya', 'Note chaque vidéo publiée (objectif 3 par semaine), coche tes jours de story, mets à jour tes abonnés quand tu veux pour voir ta courbe vers 2 000, et avance ton produit étape par étape.'],
@@ -3248,7 +3248,7 @@ function openSettings() {
     <div class="group"><button class="cell tap" data-fsetup><span class="lbl">Habitudes et horaires de la mosquée</span>${ICON.chev}</button></div>
     <p class="gt">Tes retours</p>
     <p class="hint" style="margin-top:0">Tu es la première à tester cette app. Note chaque chose qui gêne ou chaque idée dans Idées (l'ampoule en haut), en commençant par « Faille : » ou « Idée : ».</p>
-    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.0 · fonctionne hors ligne</p>`;
+    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.2 · fonctionne hors ligne</p>`;
   $('#settingsSheet').showModal();
   if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(p => { const el = $('#persistInfo'); if (el && p) el.textContent = 'Stockage protégé contre le nettoyage automatique.'; }).catch(() => {});
 }
@@ -3477,7 +3477,7 @@ function alifClick(t) {
    ===================================================================== */
 function defaultZ() {
   return {
-    corps: { sessions: [], food: {} },
+    corps: { sessions: [], food: {}, care: {} },
     routine: { items: [['tel', 'Poser le téléphone loin du lit', 1], ['demain', 'Préparer demain : tenue, sac, 3 priorités', 5], ['range', 'Ranger un coin', 5], ['soin', 'Soin du soir : visage, cheveux', 3], ['bilan', 'Noter une chose réussie aujourd\'hui', 1]], log: {}, notes: {} },
     reset: { w: {} },
     hizya: { videos: [], stories: {}, subs: [], product: [['p1', 'Idée claire du produit'], ['p2', 'Fabrication ou fournisseur trouvé'], ['p3', 'Premier échantillon'], ['p4', 'Prix et marge calculés'], ['p5', 'Photos et présentation'], ['p6', 'Page de vente prête'], ['p7', 'Lancement']].map(([id, t]) => ({ id, t, done: false })), sales: [], notes: [], goal: 2000, wk: 3 },
@@ -3489,6 +3489,7 @@ function normalizeZ(z) {
   const o = {};
   Object.keys(d).forEach(k => { o[k] = Object.assign({}, d[k], z[k] && typeof z[k] === 'object' ? z[k] : {}); });
   if (!Array.isArray(o.corps.sessions)) o.corps.sessions = [];
+  if (!o.corps.care || typeof o.corps.care !== 'object') o.corps.care = {};
   if (!Array.isArray(o.routine.items) || !o.routine.items.length) o.routine.items = d.routine.items;
   ['videos', 'subs', 'sales', 'notes', 'product'].forEach(k => { if (!Array.isArray(o.hizya[k])) o.hizya[k] = d.hizya[k]; });
   return o;
@@ -3519,16 +3520,59 @@ const CPROG = {
 };
 const CSOFT = [['Marche tranquille', '15 min', 'Dehors si possible.'], ['Chat-vache', '1 min', 'À quatre pattes, arrondis puis creuse le dos.'], ['Posture de l\'enfant', '1 min', 'Assise sur les talons, bras devant, front au sol.'], ['Étirement des cuisses', '1 min', 'Assise, jambes tendues, penche-toi doucement.'], ['Respiration lente', '3 min', '4 secondes pour inspirer, 6 pour expirer.']];
 const FOOD = [['eau', 'Boire environ 1,5 L d\'eau'], ['prot', 'Des protéines à chaque repas : légumineuses, œufs, laitages, tofu, poisson si tu en manges'], ['fer', 'Du fer avec de la vitamine C (lentilles et citron, épinards et poivron…)'], ['fl', 'Des fruits et légumes variés, au moins 5 portions']];
-const CZ = { soft: false, done: {} };
+const CZ = { soft: false, done: {}, view: (() => { try { return localStorage.getItem('zia-corps-view') || 'seance'; } catch (e) { return 'seance'; } })() };
+const CARE_Z = [['visage', 'Visage', 7, 'Masque, gommage'], ['cheveux', 'Cheveux', 7, 'Masque, huile'], ['mains', 'Mains et pieds', 14, 'Soin, crème, limage']];
+function careRing(id, name, max) {
+  const h = (Z().corps.care || {})[id] || [], last = h[h.length - 1], days = last ? dBetween(last, todayISO()) : null;
+  const left = days == null ? 0 : Math.max(0, 1 - days / max), col = days == null || days >= max ? 'rose' : days >= max - 2 ? 'warn' : 'mint';
+  return `<button class="fit" data-care="${id}" aria-label="${name} : ${days == null ? 'jamais noté' : days === 0 ? 'fait aujourd\'hui' : `il y a ${days} jours`}. Toucher quand c'est fait.">
+    <svg viewBox="-34 -34 68 68" aria-hidden="true"><circle r="28" fill="none" stroke="var(--raise)" stroke-width="6"/><circle r="28" fill="none" stroke="var(--${col})" stroke-width="6" stroke-linecap="round" transform="rotate(-90)" ${ringDash(28, left)}/>
+      <text y="${days == null ? 5 : 2}" text-anchor="middle" style="font:400 ${days == null ? 18 : 20}px var(--serif);fill:var(--ink)">${days == null ? '—' : days}</text>${days == null ? '' : '<text y="14" text-anchor="middle" style="font-size:7.5px;font-weight:700;letter-spacing:.08em;fill:var(--muted)">JOURS</text>'}</svg>
+    ${name}<small>${days == null ? 'à noter' : days >= max ? 'c\'est le moment' : `dans ${max - days} j`}</small></button>`;
+}
+const FITRA_Z = [['ongles', 'Ongles'], ['aisselles', 'Aisselles'], ['pubis', 'Poils intimes']];
+/* Jours depuis la dernière fois (null si jamais noté). */
+const fitraDays = id => { const h = S.body.fitra[id] || [], l = h[h.length - 1]; return l ? dBetween(l, todayISO()) : null; };
+const fitraDue = () => FITRA_Z.filter(([id]) => { const d = fitraDays(id); return d != null && d >= 33; });
 const cSessions = () => Z().corps.sessions;
 const cPhase = () => { const n = cSessions().length; return CPH.slice().reverse().find(p => n >= p.from); };
 const cWeek = () => cSessions().filter(s => inWeek(s.date)).length;
+const MEALS = [['Lentilles corail, riz et citron', 'Protéines complètes et fer, avec la vitamine C du citron.'], ['Houmous, crudités et pain complet', 'Pois chiches, fibres et énergie qui dure.'], ['Tofu sauté aux légumes et poivron', 'Protéines et fer, le poivron aide à l\'absorber.'], ['Salade de pois chiches, persil et tomate', 'Le persil et la tomate apportent la vitamine C.'], ['Chakchouka (si tu manges des œufs)', 'Œufs, poivrons, tomates : simple et complet.'], ['Talbina : orge, lait, miel', 'Le matin, pour un cœur apaisé (Bukhari 5417).']];
 function vCorpsZ() {
-  const ph = cPhase(), ni = CPH.indexOf(ph), next = CPH[ni + 1], n = cSessions().length, wk = cWeek(), k = todayISO();
+  const k = todayISO(), v = CZ.view;
+  const head = `${pageHead('Corps', v === 'assiette' ? 'Manger pour l\'énergie, sans viande.' : v === 'soin' ? 'Prendre soin de toi, sans rien oublier.' : 'Chez toi, sans matériel. Pour l\'énergie.', 'corpsz')}
+  <div class="seg" role="group" aria-label="Section" style="margin-top:20px">${[['seance', 'Séance'], ['assiette', 'Assiette'], ['soin', 'Soin']].map(([x, l]) => `<button data-czv="${x}" aria-pressed="${v === x}"><span class="dot"></span>${l}</button>`).join('')}</div>`;
+  if (v === 'assiette') {
+    const fd = Z().corps.food[k] || {}, fn = FOOD.filter(f => fd[f[0]]).length;
+    const days = Array.from({ length: 14 }, (_, i) => iso(addDays(new Date(), i - 13)));
+    const full = d => { const x = Z().corps.food[d] || {}; return FOOD.every(f => x[f[0]]); }, part = d => Object.keys(Z().corps.food[d] || {}).length;
+    return `${head}
+  <div class="zhero">${ring(fn / FOOD.length, `${fn}<small>/${FOOD.length}</small>`, fn === FOOD.length ? 'assiette complète' : 'aujourd\'hui', 'mint')}
+    <div class="zside"><p class="num" style="font:400 2.4rem/1 var(--serif);color:var(--mint);margin:0">${days.filter(full).length}</p><p class="small muted" style="margin:4px 0 0">jour${days.filter(full).length > 1 ? 's' : ''} complet${days.filter(full).length > 1 ? 's' : ''} sur 14</p></div></div>
+  <div class="zdays">${days.map(d => `<i class="${full(d) ? 'on' : part(d) ? 'half' : ''} ${d === k ? 'today' : ''}"></i>`).join('')}</div>
+  <div class="checks" style="margin-top:14px">${FOOD.map(([id, t]) => checkbox('fd-' + id, esc(t), 'data-cfood', !!fd[id])).join('')}</div>
+  <section><h2>Idées de repas sans viande</h2>
+    <div class="group">${MEALS.map(([t, s]) => `<div class="cell" style="flex-direction:column;align-items:flex-start;gap:2px"><span class="lbl">${t}</span><span class="small muted">${s}</span></div>`).join('')}</div>
+    <p class="hint">D'autres idées arrivent dans les cartes Alimentation du Flux.</p></section>`;
+  }
+  if (v === 'soin') {
+    return `${head}
+  <section style="margin-top:22px">
+    <h2>La fitra</h2>
+    <p class="small muted" style="margin:-8px 0 0">Ongles, aisselles, poils intimes : pas plus de 40 nuits (Muslim 258). Chaque jauge se vide avec le temps. Touche-la quand c'est fait.</p>
+    <div class="fitra">${FITRA_Z.map(([id, n]) => fitraRing(id, n)).join('')}</div>
+  </section>
+  <section>
+    <h2>Mes soins</h2>
+    <p class="small muted" style="margin:-8px 0 0">Chaque jauge se vide jusqu'au prochain soin. Touche-la quand c'est fait.</p>
+    <div class="fitra">${CARE_Z.map(([id, n, m]) => careRing(id, n, m)).join('')}</div>
+    <p class="hint">${CARE_Z.map(c => `${c[1]} : ${c[3].toLowerCase()}, tous les ${c[2]} jours`).join(' · ')}.</p>
+  </section>`;
+  }
+  const ph = cPhase(), ni = CPH.indexOf(ph), next = CPH[ni + 1], n = cSessions().length, wk = cWeek();
   const doneToday = cSessions().some(s => s.date === k), per = inPeriod(k);
   const tpl = CPROG[ph.k][n % 2], list = CZ.soft ? CSOFT : [WARM, ...tpl, COOL];
-  const fd = Z().corps.food[k] || {}, fn = FOOD.filter(f => fd[f[0]]).length;
-  return `${pageHead('Corps', 'Chez toi, sans matériel. Pour l\'énergie.', 'corpsz')}
+  return `${head}
   <div class="zhero">${ring(wk / 3, `${wk}<small>/3</small>`, 'séances cette semaine', 'mint')}
     <div class="zph">${CPH.map((p, i) => `<div class="${i < ni ? 'ok' : i === ni ? 'cur' : ''}"><b>${p.n}</b><span>${i < ni ? 'Acquis' : i === ni ? (next ? `${n - p.from}/${next.from - p.from} séances` : `${n} séances`) : `dès ${p.from} séances`}</span></div>`).join('')}</div></div>
   <section>
@@ -3538,11 +3582,6 @@ function vCorpsZ() {
     <div class="checks" style="margin-top:10px">${list.map((e, i) => `<label class="check"><input type="checkbox" data-cex="${i}" ${CZ.done[i] ? 'checked' : ''}><span class="box">${ICON.tick}</span><span class="txt">${e[0]} <b class="num" style="color:var(--gold)">${e[1]}</b><span class="small muted" style="display:block">${e[2]}</span></span></label>`).join('')}</div>
     <button class="btn" data-csdone style="margin-top:14px;width:100%" ${doneToday ? 'disabled' : ''}>${doneToday ? 'Bravo, repose-toi' : 'Séance terminée'}</button>
     <p class="hint">${wk >= 3 ? 'Tes 3 séances de la semaine sont faites. Le reste, c\'est du bonus.' : 'Laisse un jour de repos entre deux séances si tu peux.'}</p>
-  </section>
-  <section>
-    <div class="row between" style="align-items:baseline"><h2 style="margin:0">L'énergie dans l'assiette</h2><span class="small muted num">${fn} / ${FOOD.length}</span></div>
-    <div class="checks" style="margin-top:8px">${FOOD.map(([id, t]) => checkbox('fd-' + id, esc(t), 'data-cfood', !!fd[id])).join('')}</div>
-    <p class="hint">Sans viande, pense au fer et aux protéines à chaque repas. Les cartes Alimentation du Flux t'en donnent des idées.</p>
   </section>`;
 }
 
@@ -3675,6 +3714,13 @@ function vApprZ() {
 /* ----- Clics, saisies ----- */
 function zClick(t) {
   const c = s => t.closest(s); let el; const z = Z();
+  if ((el = c('[data-czv]'))) { CZ.view = el.dataset.czv; try { localStorage.setItem('zia-corps-view', CZ.view); } catch (e) {} render(); window.scrollTo(0, 0); return true; }
+  if ((el = c('[data-czgo]'))) { CZ.view = el.dataset.czgo; try { localStorage.setItem('zia-corps-view', CZ.view); } catch (e) {} go('corps'); return true; }
+  if ((el = c('[data-care]'))) {
+    const id = el.dataset.care, cr = z.corps.care, h = cr[id] = cr[id] || [], k = todayISO();
+    if (h[h.length - 1] === k) { h.pop(); save(); render(); unreward(2); toast('Annulé'); return true; }
+    h.push(k); if (h.length > 8) h.shift(); save(); const sy = window.scrollY; render(); window.scrollTo(0, sy); reward(2); return true;
+  }
   if ((el = c('[data-csoft]'))) { CZ.soft = el.dataset.csoft === '1'; CZ.done = {}; render(); return true; }
   if (c('[data-csdone]')) {
     const k = todayISO(); if (z.corps.sessions.some(s => s.date === k)) return true;
@@ -3943,7 +3989,7 @@ function growValue(k) {
   }
   const z = Z();
   if (k === 'appr') return alPoints() + wordsKnown() * 2 + bizDone() * 10 + Object.keys(z.biz.study).length * 2;
-  if (k === 'corps') return z.corps.sessions.length + Math.floor(Object.values(z.corps.food).reduce((m, d) => m + Object.keys(d).length, 0) / 6);
+  if (k === 'corps') return z.corps.sessions.length + Math.floor(Object.values(z.corps.food).reduce((m, d) => m + Object.keys(d).length, 0) / 6) + Math.floor((Object.values(z.corps.care).reduce((m, h) => m + h.length, 0) + Object.values(S.body.fitra).reduce((m, h) => m + h.length, 0)) / 3);
   if (k === 'routine') return Object.values(z.routine.log).reduce((m, d) => m + Object.keys(d).length, 0);
   if (k === 'reset') return Object.values(z.reset.w).reduce((m, w) => m + Object.keys(w.c || {}).length + (w.done ? 5 : 0), 0);
   if (k === 'hizya') { const h = z.hizya; return h.videos.length * 3 + Object.keys(h.stories).length + h.product.filter(p => p.done).length * 4 + h.sales.length + h.notes.length; }
@@ -4029,6 +4075,7 @@ function vOrbite() {
       ${(() => { const wk = cWeek(); return `<button class="today-item" data-goto="corps">${miniOrb(wk / 3, 'corps')}<span><b>${cSessions().some(s => s.date === k) ? 'Séance faite aujourd\'hui' : `Séance ${cPhase().n}`}</b><span class="s">${wk}/3 séances cette semaine</span></span>${ICON.chev}</button>`; })()}
       ${(() => { const n = rDone(k), t = rItems().length; return `<button class="today-item" data-goto="routine">${miniOrb(t ? n / t : 0, 'routine')}<span><b>${n === t ? 'Soirée bouclée' : 'Ta routine du soir'}</b><span class="s">${n}/${t} étapes · ${rStreak()} soir${rStreak() > 1 ? 's' : ''} d'affilée</span></span>${ICON.chev}</button>`; })()}
       ${new Date().getDay() === 0 || new Date().getDay() === 6 ? (() => { const s = sundayOf(), n = rsDone(s), t = rsItems(s).length; return `<button class="today-item" data-goto="reset">${miniOrb(t ? n / t : 0, 'reset')}<span><b>${new Date().getDay() === 0 ? 'Ton reset, cet après-midi' : 'Demain, ton reset'}</b><span class="s">${n}/${t} cases</span></span>${ICON.chev}</button>`; })() : ''}
+      ${(() => { const due = fitraDue(); if (!due.length) return ''; const mx = Math.max(...due.map(([id]) => fitraDays(id))); return `<button class="today-item" data-czgo="soin">${miniOrb(Math.max(0, 1 - mx / 40), 'corps')}<span><b>La fitra : ${due.map(x => x[1].toLowerCase()).join(', ')}</b><span class="s">${mx >= 40 ? 'Les 40 nuits sont dépassées' : `Plus que ${40 - mx} nuit${40 - mx > 1 ? 's' : ''} avant la limite`}</span></span>${ICON.chev}</button>`; })()}
       <button class="today-item" data-goto="cycle">${miniOrb(ci ? Math.min(1, ci.day / ci.len) : 0, 'cycle')}<span><b>${!ci ? 'Commencer le suivi du cycle' : ci.cur ? `Règles · jour ${dBetween(ci.last.start, k) + 1}` : `Jour ${ci.day} du cycle`}</b><span class="s">${!ci ? 'Note le début de tes prochaines règles' : ci.cur ? `${Object.keys(S.cycle.ad[k] || {}).length} adoration${Object.keys(S.cycle.ad[k] || {}).length > 1 ? 's' : ''} aujourd'hui` : ci.left >= 0 ? `Règles dans ${ci.left} jour${ci.left > 1 ? 's' : ''}` : `Règles attendues depuis ${-ci.left} j`}</span></span>${ICON.chev}</button>
       ${(() => { const lv = alOpen(3) ? 3 : alOpen(2) ? 2 : 1, n = alKnown(lv), t = alPool(lv).length; return `<button class="today-item" data-goto="arabe">${miniOrb(n / t, 'arabe', true)}<span><b>Lire l'arabe · ${ALV[lv - 1].t.toLowerCase()}</b><span class="s">${n} lettre${n > 1 ? 's' : ''} acquise${n > 1 ? 's' : ''} sur ${t}</span></span>${ICON.chev}</button>`; })()}
     </div>
