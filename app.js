@@ -3237,9 +3237,11 @@ function openSettings() {
   const backup = S.lastExport ? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(S.lastExport)) : 'jamais';
   $('#settingsBody').innerHTML = `<div class="grab"></div>
     <div class="sheet-top"><span style="width:60px"></span><h2 id="settingsTitle">Réglages</h2><button class="link-btn" data-close style="text-align:right">OK</button></div>
+    ${themeBlock()}
     <p class="gt">Sauvegarde</p>
     <div class="group">
       <button class="cell tap" data-export><span class="lbl">Exporter mes données</span><span class="small muted">${backup}</span>${ICON.chev}</button>
+      <button class="cell tap" data-tjexport><span class="lbl">Exporter le journal de test</span><span class="small muted">depuis le ${DAY_LONG.format(parseDate(tj().start))}</span>${ICON.chev}</button>
       <button class="cell tap" id="importBtn"><span class="lbl">Importer une sauvegarde</span>${ICON.chev}</button>
     </div>
     <p class="hint">Tout reste sur ce téléphone, y compris ton cycle. Exporte une fois par semaine et range le fichier dans Fichiers ou iCloud Drive. <span id="persistInfo"></span></p>
@@ -3248,7 +3250,7 @@ function openSettings() {
     <div class="group"><button class="cell tap" data-fsetup><span class="lbl">Habitudes et horaires de la mosquée</span>${ICON.chev}</button></div>
     <p class="gt">Tes retours</p>
     <p class="hint" style="margin-top:0">Tu es la première à tester cette app. Note chaque chose qui gêne ou chaque idée dans Idées (l'ampoule en haut), en commençant par « Faille : » ou « Idée : ».</p>
-    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.2 · fonctionne hors ligne</p>`;
+    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.4 · fonctionne hors ligne</p>`;
   $('#settingsSheet').showModal();
   if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(p => { const el = $('#persistInfo'); if (el && p) el.textContent = 'Stockage protégé contre le nettoyage automatique.'; }).catch(() => {});
 }
@@ -4067,6 +4069,7 @@ function vOrbite() {
     </svg>
   </div>
   ${yesterdayCard()}${atStake()}
+${tjCard()}
   <section style="margin-top:18px">
     <h2>Aujourd'hui</h2>
     <div class="today-list">
@@ -4090,6 +4093,95 @@ function startGarden() {
   st.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const g = e.target.closest('[data-goto],[data-soon],[data-sun]'); if (g) { e.preventDefault(); g.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
 }
 
+const TJ_APP = 'zia';
+/* =====================================================================
+   JOURNAL DE TEST — période de test de 6 mois
+   Relève seulement des comptages : jours d'ouverture et modules visités
+   (jamais l'espace privé, jamais de contenu), plus 4 questions le 1er
+   de chaque mois. Exportable depuis les réglages.
+   ===================================================================== */
+function tj() { const j = S.tj = S.tj && typeof S.tj === 'object' ? S.tj : {}; ['open', 'mods', 'survey'].forEach(k => { if (!j[k] || typeof j[k] !== 'object') j[k] = {}; }); j.start = j.start || todayISO(); return j; }
+let tjLast = 0;
+function tjOpen() { const now = Date.now(); if (now - tjLast < 10 * 60000) return; tjLast = now; const j = tj(), k = todayISO(); j.open[k] = (j.open[k] || 0) + 1; save(); }
+function tjMod(m) { if (!m || m === 'z') return; const j = tj(), k = todayISO(), d = j.mods[k] = j.mods[k] || {}; d[m] = (d[m] || 0) + 1; }
+const TJ = { q1: null, q2: null };
+const tjDue = () => { const j = tj(), ym = todayISO().slice(0, 7); return ym > j.start.slice(0, 7) && !j.survey[ym]; };
+function tjCard() {
+  if (!tjDue()) return '';
+  const prev = new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(addDays(new Date(new Date().getFullYear(), new Date().getMonth(), 1), -1));
+  return `<section class="tjcard"><p class="eyebrow" style="margin:0">Bilan du mois de test</p>
+    <p class="small" style="margin:6px 0 12px">Quatre questions sur ${prev}, une minute. Tes réponses restent sur ton téléphone jusqu'à ce que tu exportes le journal.</p>
+    <p class="zlbl">Si l'app disparaissait demain, tu serais…</p>
+    <div class="chips">${['Très déçu', 'Un peu déçu', 'Pas déçu'].map((l, i) => `<button class="chip" data-tjq1="${i}" aria-pressed="${TJ.q1 === i}">${l}</button>`).join('')}</div>
+    <p class="zlbl">Ta note sur 10</p>
+    <div class="tjnote">${Array.from({ length: 10 }, (_, i) => `<button data-tjq2="${i + 1}" aria-pressed="${TJ.q2 === i + 1}">${i + 1}</button>`).join('')}</div>
+    <label class="zlbl" for="tjQ3">Ce qui t'a le plus servi</label><textarea id="tjQ3" rows="2"></textarea>
+    <label class="zlbl" for="tjQ4">Ce qui t'a le plus agacé ou manqué</label><textarea id="tjQ4" rows="2"></textarea>
+    <button class="btn sm" data-tjsave style="margin-top:12px">Enregistrer mon bilan</button></section>`;
+}
+function tjClick(t) {
+  const c = s => t.closest(s); let el;
+  if ((el = c('[data-tjq1]'))) { TJ.q1 = Number(el.dataset.tjq1); $$('[data-tjq1]').forEach(b => b.setAttribute('aria-pressed', b === el)); return true; }
+  if ((el = c('[data-tjq2]'))) { TJ.q2 = Number(el.dataset.tjq2); $$('[data-tjq2]').forEach(b => b.setAttribute('aria-pressed', b === el)); return true; }
+  if (c('[data-tjsave]')) {
+    if (TJ.q1 == null || TJ.q2 == null) { toast('Réponds au moins aux deux premières questions.'); return true; }
+    const ym = todayISO().slice(0, 7); tj().survey[ym] = { at: todayISO(), deception: ['tres', 'peu', 'pas'][TJ.q1], note: TJ.q2, utile: ($('#tjQ3').value || '').trim(), agace: ($('#tjQ4').value || '').trim() };
+    save(); render(); reward(5, { msg: ['Bilan enregistré', 'Merci. C\'est avec ces réponses que l\'app va grandir.'] }); return true;
+  }
+  if (c('[data-tjexport]')) { tjExport(); return true; }
+  return false;
+}
+function tjExport() {
+  const j = tj(), days = Object.keys(j.open).sort(), weeks = {};
+  days.forEach(d => { const w = iso(addDays(parseDate(d), -((parseDate(d).getDay() + 6) % 7))); weeks[w] = (weeks[w] || 0) + 1; });
+  const mods = {}; Object.values(j.mods).forEach(d => Object.entries(d).forEach(([m, n]) => { mods[m] = (mods[m] || 0) + n; }));
+  const lastUse = {}; Object.keys(j.mods).sort().forEach(d => Object.keys(j.mods[d]).forEach(m => { lastUse[m] = d; }));
+  const out = { journal: 'test', app: TJ_APP, exportedAt: new Date().toISOString(), start: j.start, joursOuverts: days.length, joursParSemaine: weeks, visitesParModule: mods, derniereVisite: lastUse, bilans: j.survey, detailParJour: { ouvertures: j.open, modules: j.mods } };
+  deliverFile(`journal-test-${TJ_APP}-${todayISO()}.json`, JSON.stringify(out, null, 2), 'application/json');
+}
+
+const THEME_DEFAULT = 'nuit', THEME_EXTRA = { l: { rose: '#C24D73', 'rose-soft': '#F8E1EA', leaf: '#4FA184', 'leaf-2': '#2F7D63', trunk: '#8A6A52', fruit: '#D8435E', bloom: '#EE7A6B', soil: '#CFD8EA', water: '#6E9BF0' }, d: { rose: '#F28DB0', 'rose-soft': '#3A1C35', leaf: '#7FD1B9', 'leaf-2': '#4FA38C', trunk: '#A88B72', fruit: '#F0566F', bloom: '#FF9A86', soil: '#1C2749', water: '#74A7FF' } };
+/* =====================================================================
+   THÈMES — palettes au choix (clair et sombre), mode auto / clair / sombre.
+   Les couleurs sont posées en variables CSS sur <html> ; les couleurs
+   d'état (alertes) et propres à l'app suivent le mode choisi.
+   ===================================================================== */
+const TKEYS = ['bg', 'bg-2', 'surface', 'raise', 'ink', 'ink-2', 'muted', 'line', 'orbit', 'gold', 'gold-hi', 'gold-ink', 'gold-soft', 'glow', 'mint', 'mint-soft', 'seg-bg', 'seg-on'];
+const THEMES = {
+  emeraude: { n: 'Émeraude & or', l: '#EEF2EE #E4EBE6 #FFFFFF #E3EAE5 #0B1F19 #2E4A40 #5B7369 #D0DBD4 #B9C9BF #94700F #B8901F #FFFFFF #F3EAD2 rgba(184,144,31,.18) #187F5B #DDF0E7 #E3EAE5 #FFFFFF', d: '#08130F #0C1C17 #0F221C #163029 #EEF3EF #C3D3CB #86A197 #1D3A31 #27473D #E9C46A #F5D98E #1A1405 #2A2615 rgba(233,196,106,.22) #5ED3A8 #123328 #0F221C #23463C' },
+  nuit: { n: 'Nuit & bleu pastel', l: '#EEF2FA #E3E9F6 #FFFFFF #E4EAF6 #0D1733 #2E3C63 #5C6A8E #D4DCEE #BAC6E2 #3B6FD6 #5B8FF0 #FFFFFF #E1EAFC rgba(59,111,214,.16) #1E8468 #DCF1EA #E4EAF6 #FFFFFF', d: '#0A1024 #0D1530 #111A36 #18234A #EEF2FB #C5CFE8 #8A97B8 #212D52 #2B3A62 #74A7FF #A9C8FF #07122E #16244A rgba(116,167,255,.22) #7FD1B9 #12302E #111A36 #22305C' },
+  sable: { n: 'Sable & terracotta', l: '#F6F1EA #EDE5DA #FFFFFF #EEE6DB #2A1D14 #5A4535 #8A7360 #E2D6C6 #CDBBA6 #B4532F #CF6E47 #FFFFFF #F7E3D8 rgba(180,83,47,.16) #3E7D5A #E1EFE5 #EEE6DB #FFFFFF', d: '#17110C #1E1711 #251C15 #30251C #F4ECE3 #D6C7B6 #A08C78 #3A2D22 #4B3B2E #E4835C #F0A07F #1E0E06 #3A2218 rgba(228,131,92,.22) #7CC59C #14291D #251C15 #3E3024' },
+  rose: { n: 'Rose poudré & prune', l: '#F8F0F2 #F0E4E8 #FFFFFF #F1E5E9 #2A1420 #5B3A4B #8B6B7B #E8D5DC #D5BCC6 #8E3A63 #AE5481 #FFFFFF #F6E2EB rgba(142,58,99,.15) #2F7F68 #DFF0EA #F1E5E9 #FFFFFF', d: '#160C12 #1E1119 #26151F #331C2A #F6ECF1 #D9C3CE #A88A99 #3B2331 #4D2E40 #E59BC0 #F2BBD5 #2A0E1C #3A1D2C rgba(229,155,192,.22) #7FD1B9 #13302A #26151F #43283A' },
+  ardoise: { n: 'Ardoise & cuivre', l: '#F1F2F4 #E7E9EC #FFFFFF #E6E8EB #15191F #3B434E #6A7380 #D6DAE0 #BFC5CE #9A5B2E #B9733F #FFFFFF #F3E6DB rgba(154,91,46,.15) #2B7A62 #DEEFE8 #E6E8EB #FFFFFF', d: '#0E1013 #14171B #1A1E23 #232830 #EEF0F3 #C7CDD5 #8F98A5 #2A3039 #373E49 #D9925B #EAB083 #1E1006 #33251A rgba(217,146,91,.22) #6CC7A6 #13291F #1A1E23 #2E353F' },
+  lavande: { n: 'Lavande & menthe', l: '#F3F1FA #EAE6F5 #FFFFFF #EAE6F5 #1C1730 #443C63 #726A92 #DCD6EE #C5BDE2 #6A4FC4 #8670DC #FFFFFF #ECE6FB rgba(106,79,196,.15) #1F8A6B #DCF2EA #EAE6F5 #FFFFFF', d: '#100D1C #161226 #1C172F #26203E #F1EEFA #CEC8E6 #9A92BC #2C2547 #3A3260 #B7A4FF #CFC2FF #140B33 #2A2346 rgba(183,164,255,.22) #7FD9B8 #12302A #1C172F #352D55' }
+};
+const TSTATE = { l: { danger: '#B3372A', 'danger-soft': '#F7E3DF', warn: '#9A5600', 'warn-soft': '#F6E9D6' }, d: { danger: '#FF8A7A', 'danger-soft': '#3A1A16', warn: '#F4A259', 'warn-soft': '#33240F' } };
+const tMQ = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+function thConf() { const t = S.theme = S.theme && typeof S.theme === 'object' ? S.theme : {}; if (!THEMES[t.id]) t.id = THEME_DEFAULT; if (!['auto', 'light', 'dark'].includes(t.mode)) t.mode = 'auto'; return t; }
+function applyTheme() {
+  const t = thConf(), dark = t.mode === 'dark' || (t.mode === 'auto' && tMQ && tMQ.matches), v = dark ? 'd' : 'l';
+  const vals = THEMES[t.id][v].split(' '), r = document.documentElement;
+  TKEYS.forEach((k, i) => r.style.setProperty('--' + k, vals[i]));
+  Object.entries(Object.assign({}, TSTATE[v], (THEME_EXTRA || {})[v] || {})).forEach(([k, x]) => r.style.setProperty('--' + k, x));
+  r.style.colorScheme = dark ? 'dark' : 'light'; r.dataset.mode = dark ? 'dark' : 'light';
+  $$('meta[name="theme-color"]').forEach(m => m.setAttribute('content', vals[0]));
+}
+if (tMQ && tMQ.addEventListener) tMQ.addEventListener('change', () => { if (thConf().mode === 'auto') applyTheme(); });
+function themeBlock() {
+  const t = thConf();
+  return `<p class="gt">Apparence</p>
+    <div class="thgrid">${Object.entries(THEMES).map(([id, x]) => { const l = x.l.split(' '), d = x.d.split(' '); return `<button class="thsw" data-theme="${id}" aria-pressed="${t.id === id}"><span class="thdots"><i style="background:${l[0]};box-shadow:inset 0 0 0 1px ${l[7]}"></i><i style="background:${l[9]}"></i><i style="background:${d[0]}"></i><i style="background:${d[9]}"></i></span><span>${x.n}</span></button>`; }).join('')}</div>
+    <div class="seg" role="group" aria-label="Mode" style="margin-top:10px">${[['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']].map(([m, l]) => `<button data-tmode="${m}" aria-pressed="${t.mode === m}"><span class="dot"></span>${l}</button>`).join('')}</div>
+    <p class="hint">Auto suit le réglage clair ou sombre de ton téléphone.</p>`;
+}
+function themeClick(t) {
+  const el = t.closest('[data-theme],[data-tmode]'); if (!el) return false;
+  const c = thConf();
+  if (el.dataset.theme) { c.id = el.dataset.theme; $$('[data-theme]').forEach(b => b.setAttribute('aria-pressed', b === el)); }
+  else { c.mode = el.dataset.tmode; $$('[data-tmode]').forEach(b => b.setAttribute('aria-pressed', b === el)); }
+  save(); applyTheme(); haptic(); return true;
+}
+
 /* =====================================================================
    15. RENDU & NAVIGATION
    ===================================================================== */
@@ -4097,6 +4189,8 @@ const TABS = ['orbite', 'flux', 'foi', 'cycle', 'corps', 'routine', 'reset', 'hi
 const CVIEWS = ['entrainement', 'nutrition', 'soin'];
 let tab = 'orbite', missedDismissed = false;
 function render(animate) {
+  applyTheme();
+  if (!tjLast) tjOpen();
   const app = $('#app');
   stopOrbit();
   app.className = animate ? 'view' : '';
@@ -4116,6 +4210,7 @@ function render(animate) {
 function setAView(v) { A.view = v; try { localStorage.setItem('zia-argent-view', v); } catch (e) {} }
 function setFView(v) { F.view = v; try { localStorage.setItem('zia-foi-view', v); } catch (e) {} }
 function go(t) {
+  tjMod(t);
   if (tab === 'z') zLock();
   if (CVIEWS.includes(t)) t = 'corps';
   if (t === 'arabe' || t === 'habitudes') { setFView(t); if (tab === 'foi') { render(); window.scrollTo(0, 0); return; } t = 'foi'; }
@@ -4209,6 +4304,8 @@ setInterval(() => { const el = $('#sessEl'); if (el && S.body.active) el.textCon
 document.addEventListener('click', e => {
   const t = e.target, c = sel => t.closest(sel);
   let el;
+  if (tjClick(t)) return;
+  if (themeClick(t)) return;
   if (cycleClick(t)) return;
   if (alifClick(t)) return;
   if (zClick(t)) return;
@@ -4507,6 +4604,7 @@ document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && 
 $('#ideasSheet').addEventListener('close', () => { if ($('#ideasSheet').dataset.mode === 'bsetup') { delete $('#ideasSheet').dataset.mode; render(); } });
 let lastDay = todayISO();
 document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') tjOpen();
   if (document.visibilityState === 'hidden') { stopOrbit(); if (tab === 'z') { zLock(); tab = 'orbite'; render(); } return; }
   missedDismissed = false; if (tab === 'orbite' || tab === 'foi') setTimeout(missedOverlay, 700);
   if (todayISO() !== lastDay) { lastDay = todayISO(); H.form = null; H.month = todayISO().slice(0, 7); A.month = H.month; P.sel = null; render(); }
