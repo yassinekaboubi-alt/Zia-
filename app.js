@@ -3250,8 +3250,8 @@ function openSettings() {
     <div class="group"><button class="cell tap" data-fsetup><span class="lbl">Habitudes et horaires de la mosquée</span>${ICON.chev}</button></div>
     <p class="gt">Tes retours</p>
     <p class="hint" style="margin-top:0">Tu es la première à tester cette app. Note chaque chose qui gêne ou chaque idée dans Idées (l'ampoule en haut), en commençant par « Faille : » ou « Idée : ».</p>
-    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.4 · fonctionne hors ligne</p>`;
-  $('#settingsSheet').showModal();
+    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.6 · fonctionne hors ligne</p>`;
+  if (!$('#settingsSheet').open) $('#settingsSheet').showModal();
   if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(p => { const el = $('#persistInfo'); if (el && p) el.textContent = 'Stockage protégé contre le nettoyage automatique.'; }).catch(() => {});
 }
 async function exportData() {
@@ -4069,7 +4069,7 @@ function vOrbite() {
     </svg>
   </div>
   ${yesterdayCard()}${atStake()}
-${tjCard()}
+${tjCard()}${tjFeedback()}
   <section style="margin-top:18px">
     <h2>Aujourd'hui</h2>
     <div class="today-list">
@@ -4100,17 +4100,25 @@ const TJ_APP = 'zia';
    (jamais l'espace privé, jamais de contenu), plus 4 questions le 1er
    de chaque mois. Exportable depuis les réglages.
    ===================================================================== */
-function tj() { const j = S.tj = S.tj && typeof S.tj === 'object' ? S.tj : {}; ['open', 'mods', 'survey'].forEach(k => { if (!j[k] || typeof j[k] !== 'object') j[k] = {}; }); j.start = j.start || todayISO(); return j; }
+function tj() { const j = S.tj = S.tj && typeof S.tj === 'object' ? S.tj : {}; ['open', 'mods', 'survey'].forEach(k => { if (!j[k] || typeof j[k] !== 'object') j[k] = {}; }); if (!Array.isArray(j.notes)) j.notes = []; j.start = j.start || todayISO(); return j; }
 let tjLast = 0;
 function tjOpen() { const now = Date.now(); if (now - tjLast < 10 * 60000) return; tjLast = now; const j = tj(), k = todayISO(); j.open[k] = (j.open[k] || 0) + 1; save(); }
 function tjMod(m) { if (!m || m === 'z') return; const j = tj(), k = todayISO(), d = j.mods[k] = j.mods[k] || {}; d[m] = (d[m] || 0) + 1; }
-const TJ = { q1: null, q2: null };
+const TJ = { q1: null, q2: null, fb: null };
+/* Mes retours : un + ou un − en une phrase, à tout moment, exportés avec le journal. */
+function tjFeedback() {
+  const j = tj(), ym = todayISO().slice(0, 7), mine = j.notes.filter(n => n.d.startsWith(ym)), np = mine.filter(n => n.s === '+').length, nm = mine.length - np;
+  return `<div class="tjfb"><p class="small" style="margin:0"><b>Un retour sur l'app ?</b>${mine.length ? ` <span class="muted">${np} + · ${nm} − ce mois-ci</span>` : ''}</p>
+    <div class="tjfbb"><button class="chip" data-tjfb="+" aria-pressed="${TJ.fb === '+'}">+ Ça m'aide</button><button class="chip" data-tjfb="-" aria-pressed="${TJ.fb === '-'}">− Ça gêne</button></div>
+    ${TJ.fb ? `<div class="row" style="margin-top:10px"><input id="tjFbT" placeholder="${TJ.fb === '+' ? 'Ce qui t\'a aidé ou plu, en une phrase' : 'Ce qui t\'a gêné ou manqué, en une phrase'}" style="flex:1;min-height:44px;border:0;border-radius:12px;background:var(--raise);padding:0 12px;color:var(--ink);font:inherit"><button class="btn sm" data-tjfbok>Noter</button></div>` : ''}</div>`;
+}
 const tjDue = () => { const j = tj(), ym = todayISO().slice(0, 7); return ym > j.start.slice(0, 7) && !j.survey[ym]; };
 function tjCard() {
   if (!tjDue()) return '';
   const prev = new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(addDays(new Date(new Date().getFullYear(), new Date().getMonth(), 1), -1));
   return `<section class="tjcard"><p class="eyebrow" style="margin:0">Bilan du mois de test</p>
     <p class="small" style="margin:6px 0 12px">Quatre questions sur ${prev}, une minute. Tes réponses restent sur ton téléphone jusqu'à ce que tu exportes le journal.</p>
+    ${(() => { const pm = iso(addDays(new Date(new Date().getFullYear(), new Date().getMonth(), 1), -1)).slice(0, 7), ns = tj().notes.filter(n => n.d.startsWith(pm)); return ns.length ? `<p class="zlbl">Tes notes du mois, pour t'aider</p>${ns.map(n => `<p class="small" style="margin:0 0 4px"><b style="color:var(--${n.s === '+' ? 'mint' : 'warn'})">${n.s === '+' ? '+' : '−'}</b> ${esc(n.t)}</p>`).join('')}` : ''; })()}
     <p class="zlbl">Si l'app disparaissait demain, tu serais…</p>
     <div class="chips">${['Très déçu', 'Un peu déçu', 'Pas déçu'].map((l, i) => `<button class="chip" data-tjq1="${i}" aria-pressed="${TJ.q1 === i}">${l}</button>`).join('')}</div>
     <p class="zlbl">Ta note sur 10</p>
@@ -4129,6 +4137,8 @@ function tjClick(t) {
     save(); render(); reward(5, { msg: ['Bilan enregistré', 'Merci. C\'est avec ces réponses que l\'app va grandir.'] }); return true;
   }
   if (c('[data-tjexport]')) { tjExport(); return true; }
+  if ((el = c('[data-tjfb]'))) { TJ.fb = TJ.fb === el.dataset.tjfb ? null : el.dataset.tjfb; const sy = window.scrollY; render(); window.scrollTo(0, sy); setTimeout(() => { const i = $('#tjFbT'); i && i.focus(); }, 50); return true; }
+  if (c('[data-tjfbok]')) { const v = ($('#tjFbT').value || '').trim(); if (!v) { toast('Écris ton retour en une phrase.'); return true; } tj().notes.push({ d: todayISO(), s: TJ.fb, t: v.slice(0, 500), m: tab }); TJ.fb = null; save(); const sy = window.scrollY; render(); window.scrollTo(0, sy); toast('Retour noté. Merci.'); return true; }
   return false;
 }
 function tjExport() {
@@ -4136,7 +4146,7 @@ function tjExport() {
   days.forEach(d => { const w = iso(addDays(parseDate(d), -((parseDate(d).getDay() + 6) % 7))); weeks[w] = (weeks[w] || 0) + 1; });
   const mods = {}; Object.values(j.mods).forEach(d => Object.entries(d).forEach(([m, n]) => { mods[m] = (mods[m] || 0) + n; }));
   const lastUse = {}; Object.keys(j.mods).sort().forEach(d => Object.keys(j.mods[d]).forEach(m => { lastUse[m] = d; }));
-  const out = { journal: 'test', app: TJ_APP, exportedAt: new Date().toISOString(), start: j.start, joursOuverts: days.length, joursParSemaine: weeks, visitesParModule: mods, derniereVisite: lastUse, bilans: j.survey, detailParJour: { ouvertures: j.open, modules: j.mods } };
+  const out = { journal: 'test', app: TJ_APP, exportedAt: new Date().toISOString(), start: j.start, joursOuverts: days.length, joursParSemaine: weeks, visitesParModule: mods, derniereVisite: lastUse, bilans: j.survey, retours: j.notes, detailParJour: { ouvertures: j.open, modules: j.mods } };
   deliverFile(`journal-test-${TJ_APP}-${todayISO()}.json`, JSON.stringify(out, null, 2), 'application/json');
 }
 
@@ -4157,7 +4167,26 @@ const THEMES = {
 };
 const TSTATE = { l: { danger: '#B3372A', 'danger-soft': '#F7E3DF', warn: '#9A5600', 'warn-soft': '#F6E9D6' }, d: { danger: '#FF8A7A', 'danger-soft': '#3A1A16', warn: '#F4A259', 'warn-soft': '#33240F' } };
 const tMQ = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
-function thConf() { const t = S.theme = S.theme && typeof S.theme === 'object' ? S.theme : {}; if (!THEMES[t.id]) t.id = THEME_DEFAULT; if (!['auto', 'light', 'dark'].includes(t.mode)) t.mode = 'auto'; return t; }
+/* ----- Ma palette : deux couleurs choisies, tout le reste en est déduit ----- */
+const hex2hsl = h => { h = (h || '#000000').replace('#', ''); const r = parseInt(h.slice(0, 2), 16) / 255, g = parseInt(h.slice(2, 4), 16) / 255, b = parseInt(h.slice(4, 6), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let s = 0, hu = 0; if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); hu = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hu *= 60; } return [hu, s * 100, l * 100]; };
+const hsl = (h, s, l) => { s = Math.max(0, Math.min(100, s)) / 100; l = Math.max(0, Math.min(100, l)) / 100; const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return '#' + [f(0), f(8), f(4)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join('').toUpperCase(); };
+const rgba = (hx, a) => { const h = hx.replace('#', ''); return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`; };
+function customTheme(c) {
+  const [ha, sa, la] = hex2hsl(c.a), [hb, sb0] = hex2hsl(c.b), sb = Math.min(sb0, 30);
+  const gl = hsl(ha, sa, Math.min(la, 40)), gd = hsl(ha, Math.min(sa, 90), Math.max(la, 64));
+  const L = [hsl(hb, sb, 95), hsl(hb, sb, 91), '#FFFFFF', hsl(hb, sb, 90), hsl(hb, Math.min(sb + 15, 45), 10), hsl(hb, sb, 27), hsl(hb, sb * .7, 42), hsl(hb, sb, 85), hsl(hb, sb, 76), gl, hsl(ha, sa, Math.min(la, 40) + 10), '#FFFFFF', hsl(ha, sa * .6, 93), rgba(gl, .16), '#187F5B', '#DDF0E7', hsl(hb, sb, 90), '#FFFFFF'];
+  const D = [hsl(hb, sb, 6), hsl(hb, sb, 8), hsl(hb, sb, 10.5), hsl(hb, sb, 15), hsl(hb, sb * .5, 94), hsl(hb, sb * .5, 80), hsl(hb, sb * .6, 58), hsl(hb, sb, 18), hsl(hb, sb, 25), gd, hsl(ha, Math.min(sa, 90), Math.min(Math.max(la, 64) + 12, 88)), hsl(ha, 60, 9), hsl(ha, sa * .45, 15), rgba(gd, .22), '#5ED3A8', '#123328', hsl(hb, sb, 10.5), hsl(hb, sb, 21)];
+  return { n: 'Ma palette', l: L.join(' '), d: D.join(' ') };
+}
+document.addEventListener('input', e => {
+  const t = e.target; if (!t.dataset || !t.dataset.tcol) return;
+  const c = thConf(); c.custom = c.custom || {}; c.custom[t.dataset.tcol] = t.value; c.id = 'custom';
+  THEMES.custom = customTheme(c.custom); applyTheme();
+  const sw = $('[data-theme="custom"] .thdots'); if (sw) { const x = THEMES.custom, l = x.l.split(' '), d = x.d.split(' '); sw.innerHTML = `<i style="background:${l[0]};box-shadow:inset 0 0 0 1px ${l[7]}"></i><i style="background:${l[9]}"></i><i style="background:${d[0]}"></i><i style="background:${d[9]}"></i>`; }
+  clearTimeout(t._sv); t._sv = setTimeout(() => save(), 400);
+});
+
+function thConf() { const t = S.theme = S.theme && typeof S.theme === 'object' ? S.theme : {}; if (!t.custom || !t.custom.a) t.custom = { a: '#74A7FF', b: '#111A36' }; THEMES.custom = customTheme(t.custom); if (!THEMES[t.id]) t.id = THEME_DEFAULT; if (!['auto', 'light', 'dark'].includes(t.mode)) t.mode = 'auto'; return t; }
 function applyTheme() {
   const t = thConf(), dark = t.mode === 'dark' || (t.mode === 'auto' && tMQ && tMQ.matches), v = dark ? 'd' : 'l';
   const vals = THEMES[t.id][v].split(' '), r = document.documentElement;
@@ -4171,13 +4200,15 @@ function themeBlock() {
   const t = thConf();
   return `<p class="gt">Apparence</p>
     <div class="thgrid">${Object.entries(THEMES).map(([id, x]) => { const l = x.l.split(' '), d = x.d.split(' '); return `<button class="thsw" data-theme="${id}" aria-pressed="${t.id === id}"><span class="thdots"><i style="background:${l[0]};box-shadow:inset 0 0 0 1px ${l[7]}"></i><i style="background:${l[9]}"></i><i style="background:${d[0]}"></i><i style="background:${d[9]}"></i></span><span>${x.n}</span></button>`; }).join('')}</div>
+    ${t.id === 'custom' ? `<div class="thpick"><label><input type="color" data-tcol="a" value="${t.custom.a}"><span>Couleur principale<small>boutons, chiffres, accents</small></span></label><label><input type="color" data-tcol="b" value="${t.custom.b}"><span>Teinte du fond<small>l'ambiance générale</small></span></label></div><p class="hint" style="margin-top:6px">L'app en tire toute seule une version claire et une version sombre lisibles.</p>` : ''}
     <div class="seg" role="group" aria-label="Mode" style="margin-top:10px">${[['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']].map(([m, l]) => `<button data-tmode="${m}" aria-pressed="${t.mode === m}"><span class="dot"></span>${l}</button>`).join('')}</div>
     <p class="hint">Auto suit le réglage clair ou sombre de ton téléphone.</p>`;
 }
+function openSettingsBody() { openSettings(); }
 function themeClick(t) {
   const el = t.closest('[data-theme],[data-tmode]'); if (!el) return false;
   const c = thConf();
-  if (el.dataset.theme) { c.id = el.dataset.theme; $$('[data-theme]').forEach(b => b.setAttribute('aria-pressed', b === el)); }
+  if (el.dataset.theme) { const was = c.id; c.id = el.dataset.theme; $$('[data-theme]').forEach(b => b.setAttribute('aria-pressed', b === el)); if ((was === 'custom') !== (c.id === 'custom')) { save(); applyTheme(); const sb = $('#settingsBody'), y = sb ? sb.scrollTop : 0; openSettingsBody(); if (sb) sb.scrollTop = y; return true; } }
   else { c.mode = el.dataset.tmode; $$('[data-tmode]').forEach(b => b.setAttribute('aria-pressed', b === el)); }
   save(); applyTheme(); haptic(); return true;
 }
