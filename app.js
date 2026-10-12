@@ -546,7 +546,7 @@ const COACH = {
   apprz: ['Trente minutes par jour', 'Deux parcours : lire l\'arabe, et le business selon les règles islamiques. Chacun avance par paliers : le suivant s\'ouvre quand tu as appliqué le précédent.'],
   cycle: ['Ton cycle, et ta foi avec', 'Note le début et la fin de tes règles : tes prières se mettent en pause toutes seules, sans toucher à ta série ni à tes 90 %. Pendant ce temps, l\'app te propose des adorations toujours possibles. Tes données restent sur ce téléphone. Ce suivi n\'est pas une méthode de contraception.'],
   parcours: ['12 mois pour te former au business', 'Fais glisser l\'anneau ou touche une lune pour choisir un mois. Chaque mois se fait dans l\'ordre :', ['Écoute et lis les ressources', 'Coche les acquis quand tu les maîtrises', 'Fais l\'exercice pratique', 'Note ce que tu retiens']],
-  arabe: ['Apprendre à lire, palier après palier', 'Palier 1, les 28 lettres. Palier 2, leurs formes dans le mot. Palier 3, les voyelles. Palier 4, lire des mots. Palier 5, leur sens. Touche une lettre pour voir ses formes et l\'écouter, puis entraîne-toi au quiz : une lettre est acquise après 3 bonnes réponses, et chaque palier s\'ouvre quand le précédent est acquis.'],
+  arabe: ['Apprendre à lire, palier après palier', 'Palier 1, les 28 lettres. Palier 2, leurs formes dans le mot. Palier 3, les voyelles. Palier 4, lire des mots. Palier 5, leur sens. Puis « Lire et parler » : 6 les signes, 7 les phrases, 8 parler (écouter, répéter, t\'enregistrer), 9 lire couramment. Touche une lettre pour voir ses formes et l\'écouter, puis entraîne-toi au quiz : une lettre est acquise après 3 bonnes réponses, et chaque palier s\'ouvre quand le précédent est acquis.'],
   routine: ['Ta 1 h 30 quotidienne', 'L\'anneau est découpé en 4 blocs. Touche un bloc quand il est fait : les 4 faits, la journée est validée et ta série continue.'],
   budget: ['Ta méthode', 'Elle tient en 3 temps :', ['Tu te paies d\'abord : ton épargne part en début de mois', 'Tes charges fixes sont mises de côté', 'Le reste est à toi, avec un budget par jour qui s\'ajuste à chaque dépense. Les enveloppes freinent les catégories où ça file vite.']],
   foi: ['Ta régularité', 'Touche chaque prière sur le chemin du soleil pour dire comment tu l\'as faite : chez toi à l\'heure, c\'est le maximum. Coche tes autres habitudes en dessous. Pendant tes règles, les prières se mettent en pause toutes seules : ta série et tes 90 % ne bougent pas.'],
@@ -778,9 +778,11 @@ function constellation() {
   }).join('');
 }
 function vArabe() {
-  const sw = `<div class="seg" role="group" aria-label="Arabe" style="margin-top:14px"><button data-arv="lettres" aria-pressed="${AV === 'lettres'}"><span class="dot"></span>Lire les lettres</button><button data-arv="mots" aria-pressed="${AV === 'mots'}"><span class="dot"></span>${alOpen(5) ? 'Le sens des mots' : 'Le sens · verrouillé'}</button></div>`;
-  if (AV !== 'mots' || !alOpen(5)) return `${foiTop('arabe')}${sw.replace('data-arv="mots"', alOpen(5) ? 'data-arv="mots"' : 'data-arv="mots" disabled')}${alOpen(5) ? '' : '<p class="hint" style="text-align:center">Palier 5, le sens des mots : il s\'ouvre quand tu sais lire 20 mots.</p>'}${vLettres()}`;
-  return vMots(sw);
+  const o5 = alOpen(5), o6 = lpOpen(6);
+  const sw = `<div class="seg" role="group" aria-label="Arabe" style="margin-top:14px"><button data-arv="lettres" aria-pressed="${AV === 'lettres'}"><span class="dot"></span>Les lettres</button><button data-arv="mots" aria-pressed="${AV === 'mots'}" ${o5 ? '' : 'disabled'}><span class="dot"></span>${o5 ? 'Le sens' : 'Le sens ·'}</button><button data-arv="lp" aria-pressed="${AV === 'lp'}" ${o6 ? '' : 'disabled'}><span class="dot"></span>${o6 ? 'Lire et parler' : 'Parler ·'}</button></div>`;
+  if (AV === 'lp' && o6) return `${foiTop('arabe')}${sw}${vLP()}`;
+  if (AV !== 'mots' || !o5) return `${foiTop('arabe')}${sw}${o5 ? '' : '<p class="hint" style="text-align:center">Palier 5, le sens des mots : il s\'ouvre quand tu sais lire 20 mots.</p>'}${vLettres()}`;
+  return vMots(sw) + (o6 ? '' : `<p class="hint" style="text-align:center;margin-top:18px">Ensuite : « Lire et parler », les paliers 6 à 9. Ils s'ouvrent à ${LP_NEED[6]()} mots maîtrisés dans ta constellation.</p>`);
 }
 function vMots(sw) {
   const t = S.tajwid, cq = currentQuarter(), nS = SOURATES.filter(s => S.sourates[s[1]]).length;
@@ -3251,7 +3253,7 @@ function openSettings() {
     <div class="group"><button class="cell tap" data-fsetup><span class="lbl">Habitudes et horaires de la mosquée</span>${ICON.chev}</button></div>
     <p class="gt">Tes retours</p>
     <p class="hint" style="margin-top:0">Tu es la première à tester cette app. Note chaque chose qui gêne ou chaque idée dans Idées (l'ampoule en haut), en commençant par « Faille : » ou « Idée : ».</p>
-    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.7 · fonctionne hors ligne</p>`;
+    <p class="hint" style="margin-top:30px;text-align:center">Zia · v2.8 · fonctionne hors ligne</p>`;
   if (!$('#settingsSheet').open) $('#settingsSheet').showModal();
   if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(p => { const el = $('#persistInfo'); if (el && p) el.textContent = 'Stockage protégé contre le nettoyage automatique.'; }).catch(() => {});
 }
@@ -3367,11 +3369,11 @@ const alOpen = lv => lv === 1 || alKnown(lv - 1) >= alGoal(lv - 1);
 const alPoints = () => [1, 2, 3, 4].reduce((m, l) => m + alPool(l).reduce((a, i) => a + alScore(l, i), 0), 0);
 function formsOf(i) { const [c, , , , , nc] = LETTERS[i]; return nc ? [c, c, 'ـ' + c, 'ـ' + c] : [c, c + 'ـ', 'ـ' + c + 'ـ', 'ـ' + c]; }
 const syl = (i, v) => (LETTERS[i][3] === 'ʿ' ? 'ʿ' : LETTERS[i][3]) + VOW[v][1];
-function sayAr(txt) {
+function sayAr(txt, rate = .75) {
   try {
     if (!('speechSynthesis' in window)) { toast('La lecture à voix haute n\'est pas disponible sur cet appareil.'); return; }
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(txt); u.lang = 'ar-SA'; u.rate = .75;
+    const u = new SpeechSynthesisUtterance(txt); u.lang = 'ar-SA'; u.rate = rate;
     const v = speechSynthesis.getVoices().find(x => /^ar/i.test(x.lang)); if (v) u.voice = v;
     speechSynthesis.speak(u);
   } catch (e) {}
@@ -3461,6 +3463,315 @@ function vLettres() {
   ${AL.open != null ? alCard(AL.open) : ''}
   <section style="margin-top:22px"><div class="quiz"><div class="qcard" id="lquiz" aria-live="polite"></div></div>
   <p class="hint">Les lettres que tu connais le moins reviennent plus souvent.</p></section>`;
+}
+/* =====================================================================
+   LIRE ET PARLER — paliers 6 à 9, après le sens des mots (palier 5).
+   6 Les signes · 7 Les phrases · 8 Parler (arabe littéraire, au féminin) · 9 Lire couramment
+   S.lp = { sg{ id: { st } }, ph{ id: { st } }, sp{ id: { st, said[] } }, flu{ id: [dates] }, t{ palier: date } }
+   Un élément de questionnaire est maîtrisé après deux bonnes réponses d'affilée.
+   Une phrase de « Parler » est acquise quand elle est maîtrisée au questionnaire ET dite à voix haute.
+   ===================================================================== */
+const LPP = [
+  { k: 6, t: 'Les signes', s: 'Soukoun, chadda, tanwîn, lettres solaires…' },
+  { k: 7, t: 'Les phrases', s: 'Les formules que tu dis chaque jour' },
+  { k: 8, t: 'Parler', s: 'Saluer, te présenter, demander' },
+  { k: 9, t: 'Lire couramment', s: 'Des passages entiers, chronométrés' }
+];
+/* [id, mot, lecture, explication] */
+const SIGNS = [
+  ['s1', 'قُلْ', 'qul', 'Le petit rond ـْ (soukoun) : la lettre se lit sans voyelle. Ici, le lām s\'arrête net : qul.'],
+  ['s2', 'أَنْتِ', 'anti', 'Soukoun sur le nūn : an-ti. C\'est « toi », quand on parle à une femme.'],
+  ['s3', 'رَبِّ', 'rabbi', 'La chadda ـّ double la lettre : rab-bi.'],
+  ['s4', 'أُمِّي', 'ummī', 'Chadda sur le mīm : um-mī, « ma mère ».'],
+  ['s5', 'كِتَابًا', 'kitāban', 'Deux fatḥas (tanwîn) : on lit « an ». L\'alif qui suit ne se prononce pas.'],
+  ['s6', 'بَيْتٍ', 'baytin', 'Deux kasras (tanwîn) : on lit « in ».'],
+  ['s7', 'نُورٌ', 'nūrun', 'Deux ḍammas (tanwîn) : on lit « un ».'],
+  ['s8', 'رَحْمَةٌ', 'raḥmatun', 'La tā\' marbūṭa ة se lit « t » quand on enchaîne, et « a » quand on s\'arrête : raḥma.'],
+  ['s9', 'عَلَى', 'ʿalā', 'Le ى sans points, en fin de mot, se lit comme un alif : « ā ».'],
+  ['s10', 'الْقَمَرُ', 'al-qamaru', 'Lettre lunaire : devant le ق, le lām de « al » se prononce.'],
+  ['s11', 'الشَّمْسُ', 'ash-shamsu', 'Lettre solaire : le lām s\'efface et le ش est doublé (chadda).'],
+  ['s12', 'بِسْمِ اللَّهِ', 'bismi llāh', 'En liaison, l\'alif du début de « Allah » ne se prononce pas : bismi-llāh.'],
+  ['s13', 'آمَنُوا', 'āmanū', 'Le madd ـٓ sur l\'alif (آ) se lit « ā » long, dès le début du mot.'],
+  ['s14', 'قَالُوا', 'qālū', 'L\'alif après le wāw final du pluriel ne se prononce pas : qā-lū.'],
+  ['s15', 'سَأَلَ', 'saʾala', 'La hamza ء est un petit arrêt de la gorge, comme une coupure : sa-ʾa-la.'],
+  ['s16', 'الرَّحْمَٰنِ', 'ar-raḥmāni', 'Le petit alif suscrit ـٰ allonge la voyelle : ar-raḥ-mā-ni.']
+];
+/* [id, arabe, lecture, sens, note] */
+const LPHR = [
+  ['p1', 'بِسْمِ اللَّهِ', 'bismi llāh', 'Au nom d\'Allah'],
+  ['p2', 'الْحَمْدُ لِلَّهِ', 'al-ḥamdu lillāh', 'Louange à Allah'],
+  ['p3', 'إِنْ شَاءَ اللَّهُ', 'in shāʾa llāh', 'Si Allah le veut'],
+  ['p4', 'مَا شَاءَ اللَّهُ', 'mā shāʾa llāh', 'C\'est ce qu\'Allah a voulu'],
+  ['p5', 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', 'subḥāna llāhi wa biḥamdih', 'Gloire et louange à Allah'],
+  ['p6', 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ', 'lā ḥawla wa lā quwwata illā billāh', 'Il n\'y a de force ni de puissance qu\'en Allah'],
+  ['p7', 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ', 'ḥasbunā llāhu wa niʿma l-wakīl', 'Allah nous suffit, et quel excellent garant (3:173)'],
+  ['p8', 'رَبِّ زِدْنِي عِلْمًا', 'rabbi zidnī ʿilmā', 'Seigneur, accroît ma science (20:114)'],
+  ['p9', 'جَزَاكَ اللَّهُ خَيْرًا', 'jazāka llāhu khayran', 'Qu\'Allah te récompense en bien', 'À un homme. À une femme : جَزَاكِ (jazāki).'],
+  ['p10', 'السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ', 'as-salāmu ʿalaykum wa raḥmatu llāhi wa barakātuh', 'Que la paix soit sur vous, ainsi que la miséricorde d\'Allah et Ses bénédictions'],
+  ['p11', 'إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ', 'innā lillāhi wa innā ilayhi rājiʿūn', 'Nous sommes à Allah et c\'est vers Lui que nous retournerons (2:156)'],
+  ['p12', 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ', 'rabbanā ātinā fi d-dunyā ḥasanatan wa fi l-ākhirati ḥasanatan wa qinā ʿadhāba n-nār', 'Seigneur, accorde-nous une belle part ici-bas et dans l\'au-delà, et protège-nous du châtiment du Feu (2:201)'],
+  ['p13', 'تَوَكَّلْتُ عَلَى اللَّهِ', 'tawakkaltu ʿala llāh', 'Je place ma confiance en Allah'],
+  ['p14', 'بَارَكَ اللَّهُ فِيكَ', 'bāraka llāhu fīk', 'Qu\'Allah te bénisse', 'À un homme. À une femme : فِيكِ (fīki).'],
+  ['p15', 'أَسْتَغْفِرُ اللَّهَ', 'astaghfiru llāh', 'Je demande pardon à Allah'],
+  ['p16', 'لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ', 'lā ilāha illā anta subḥānaka innī kuntu mina ẓ-ẓālimīn', 'Pas de divinité à part Toi, gloire à Toi, j\'ai été parmi les injustes (21:87)']
+];
+/* Parler : arabe littéraire (fusha), écrit pour une femme qui parle. [id, arabe, lecture, sens, note, texte lu par la voix] */
+const SPK_SC = [
+  ['sal', 'Saluer', [
+    ['k1', 'السَّلَامُ عَلَيْكُمْ', 'as-salāmu ʿalaykum', 'Que la paix soit sur vous (bonjour)'],
+    ['k2', 'وَعَلَيْكُمُ السَّلَامُ', 'wa ʿalaykumu s-salām', 'Et sur vous la paix (la réponse)'],
+    ['k3', 'صَبَاحَ الْخَيْرِ', 'ṣabāḥa l-khayr', 'Bonjour (le matin)'],
+    ['k4', 'صَبَاحَ النُّورِ', 'ṣabāḥa n-nūr', 'Bonjour, en réponse (« matin de lumière »)'],
+    ['k5', 'مَسَاءَ الْخَيْرِ', 'masāʾa l-khayr', 'Bonsoir'],
+    ['k6', 'مَعَ السَّلَامَةِ', 'maʿa s-salāma', 'Au revoir']]],
+  ['hal', 'Prendre des nouvelles', [
+    ['k7', 'كَيْفَ حَالُكِ؟', 'kayfa ḥāluki ?', 'Comment vas-tu ?', 'À une femme. À un homme : كَيْفَ حَالُكَ (kayfa ḥāluka).'],
+    ['k8', 'أَنَا بِخَيْرٍ، الْحَمْدُ لِلَّهِ', 'anā bikhayrin, al-ḥamdu lillāh', 'Je vais bien, louange à Allah'],
+    ['k9', 'وَأَنْتِ؟', 'wa anti ?', 'Et toi ?', 'À une femme. À un homme : وَأَنْتَ (wa anta).'],
+    ['k10', 'شُكْرًا جَزِيلًا', 'shukran jazīlan', 'Merci beaucoup'],
+    ['k11', 'عَفْوًا', 'ʿafwan', 'De rien (et aussi : pardon)']]],
+  ['moi', 'Me présenter', [
+    ['k12', 'مَا اسْمُكِ؟', 'masmuki ?', 'Comment t\'appelles-tu ?', 'À une femme. À un homme : مَا اسْمُكَ (masmuka).'],
+    ['k13', 'اِسْمِي …', 'ismī …', 'Je m\'appelle …', 'Ajoute ton prénom après اِسْمِي.', 'اِسْمِي'],
+    ['k14', 'أَنَا مِنْ فَرَنْسَا', 'anā min faransā', 'Je viens de France'],
+    ['k15', 'أَنَا مُسْلِمَةٌ، وَالْحَمْدُ لِلَّهِ', 'anā muslimatun, wal-ḥamdu lillāh', 'Je suis musulmane, louange à Allah'],
+    ['k16', 'أَتَعَلَّمُ اللُّغَةَ الْعَرَبِيَّةَ', 'ataʿallamu l-lughata l-ʿarabiyya', 'J\'apprends la langue arabe'],
+    ['k17', 'تَشَرَّفْنَا', 'tasharrafnā', 'Enchantée']]],
+  ['app', 'Pour apprendre', [
+    ['k18', 'لَا أَفْهَمُ', 'lā afham', 'Je ne comprends pas'],
+    ['k19', 'أَعِدْ مِنْ فَضْلِكَ', 'aʿid min faḍlik', 'Répète, s\'il te plaît', 'À un homme. À une femme : أَعِيدِي مِنْ فَضْلِكِ (aʿīdī min faḍliki).'],
+    ['k20', 'بِبُطْءٍ مِنْ فَضْلِكَ', 'bibuṭʾin min faḍlik', 'Plus lentement, s\'il te plaît', 'À une femme : مِنْ فَضْلِكِ (min faḍliki).'],
+    ['k21', 'مَاذَا يَعْنِي هَذَا؟', 'mādhā yaʿnī hādhā ?', 'Qu\'est-ce que ça veut dire ?'],
+    ['k22', 'كَيْفَ نَقُولُ … بِالْعَرَبِيَّةِ؟', 'kayfa naqūlu … bil-ʿarabiyya ?', 'Comment dit-on … en arabe ?', 'Mets le mot français à la place des points.', 'كَيْفَ نَقُولُ بِالْعَرَبِيَّةِ؟'],
+    ['k23', 'أَتَكَلَّمُ قَلِيلًا', 'atakallamu qalīlan', 'Je parle un peu']]],
+  ['jour', 'Au quotidien', [
+    ['k24', 'أَشْعُرُ بِالْجُوعِ', 'ashʿuru bil-jūʿ', 'J\'ai faim'],
+    ['k25', 'أَشْعُرُ بِالْعَطَشِ', 'ashʿuru bil-ʿaṭash', 'J\'ai soif'],
+    ['k26', 'أُرِيدُ مَاءً', 'urīdu māʾan', 'Je voudrais de l\'eau'],
+    ['k27', 'هَذَا لَذِيذٌ', 'hādhā ladhīdh', 'C\'est délicieux'],
+    ['k28', 'أَيْنَ الْمَسْجِدُ؟', 'ayna l-masjid ?', 'Où est la mosquée ?'],
+    ['k29', 'الْجَوُّ جَمِيلٌ الْيَوْمَ', 'al-jawwu jamīlun l-yawm', 'Il fait beau aujourd\'hui']]],
+  ['q', 'Poser des questions', [
+    ['k30', 'مَا هَذَا؟', 'mā hādhā ?', 'Qu\'est-ce que c\'est ?'],
+    ['k31', 'مَنْ هَذِهِ؟', 'man hādhihi ?', 'Qui est-ce ?', 'Pour une femme. Pour un homme : مَنْ هَذَا (man hādhā).'],
+    ['k32', 'أَيْنَ؟ مَتَى؟ لِمَاذَا؟', 'ayna ? matā ? limādhā ?', 'Où ? Quand ? Pourquoi ?'],
+    ['k33', 'كَمِ السَّاعَةُ؟', 'kami s-sāʿa ?', 'Quelle heure est-il ?'],
+    ['k34', 'هَلْ تَتَكَلَّمِينَ الْعَرَبِيَّةَ؟', 'hal tatakallamīna l-ʿarabiyya ?', 'Parles-tu arabe ?', 'À une femme. À un homme : هَلْ تَتَكَلَّمُ (hal tatakallamu).']]],
+  ['fam', 'Ma famille', [
+    ['k35', 'هَذَا زَوْجِي', 'hādhā zawjī', 'Voici mon mari'],
+    ['k36', 'أُمِّي وَأَبِي', 'ummī wa abī', 'Ma mère et mon père'],
+    ['k37', 'عِنْدِي أُخْتٌ وَأَخٌ', 'ʿindī ukhtun wa akh', 'J\'ai une sœur et un frère', 'Un exemple : adapte-le à ta famille (أُخْتَانِ, ukhtāni : deux sœurs).'],
+    ['k38', 'أُحِبُّكَ فِي اللَّهِ', 'uḥibbuka fi llāh', 'Je t\'aime en Allah', 'À un homme. À une femme : أُحِبُّكِ (uḥibbuki). La réponse : أَحَبَّكَ الَّذِي أَحْبَبْتَنِي لَهُ, « Que t\'aime Celui pour qui tu m\'aimes » (Abu Dawud 5125).']]]
+];
+const SPK = SPK_SC.flatMap(s => s[2].map(x => Object.assign(x.slice(), { sc: s[0] })));
+const LPTXT = {
+  fatiha: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۝ الرَّحْمَٰنِ الرَّحِيمِ ۝ مَالِكِ يَوْمِ الدِّينِ ۝ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ۝ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ ۝ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ',
+  ikhlas: 'قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ',
+  falaq: 'قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِنْ شَرِّ مَا خَلَقَ ۝ وَمِنْ شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِنْ شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِنْ شَرِّ حَاسِدٍ إِذَا حَسَدَ',
+  nas: 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِنْ شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ',
+  asr: 'وَالْعَصْرِ ۝ إِنَّ الْإِنْسَانَ لَفِي خُسْرٍ ۝ إِلَّا الَّذِينَ آمَنُوا وَعَمِلُوا الصَّالِحَاتِ وَتَوَاصَوْا بِالْحَقِّ وَتَوَاصَوْا بِالصَّبْرِ',
+  kawthar: 'إِنَّا أَعْطَيْنَاكَ الْكَوْثَرَ ۝ فَصَلِّ لِرَبِّكَ وَانْحَرْ ۝ إِنَّ شَانِئَكَ هُوَ الْأَبْتَرُ',
+  kursi: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ',
+  dialogue: '— السَّلَامُ عَلَيْكُمْ.\n— وَعَلَيْكُمُ السَّلَامُ. كَيْفَ حَالُكِ؟\n— أَنَا بِخَيْرٍ، الْحَمْدُ لِلَّهِ. وَأَنْتِ؟\n— بِخَيْرٍ، الْحَمْدُ لِلَّهِ. مَا اسْمُكِ؟\n— اِسْمِي مَرْيَمُ، وَأَنَا مِنْ فَرَنْسَا. أَتَعَلَّمُ اللُّغَةَ الْعَرَبِيَّةَ لِأَفْهَمَ الْقُرْآنَ.\n— مَا شَاءَ اللَّهُ! تَشَرَّفْنَا.\n— شُكْرًا جَزِيلًا. مَعَ السَّلَامَةِ.'
+};
+/* [id, titre, textes, aide] */
+const LPFLU = [
+  ['f1', 'Al-Fâtiha', 'fatiha', 'Celle que tu récites à chaque prière.'],
+  ['f2', 'Al-Ikhlâs, Al-Falaq, An-Nâs', 'ikhlas,falaq,nas', 'Les trois sourates de protection.'],
+  ['f3', 'Al-ʿAsr et Al-Kawthar', 'asr,kawthar', 'Deux sourates courtes, bien rythmées.'],
+  ['f4', 'Âyat al-Kursî', 'kursi', 'Le plus grand verset du Coran (Muslim 810).'],
+  ['f5', 'Mon premier dialogue', 'dialogue', 'Deux femmes se rencontrent : tout ce que tu as appris en « Parler ».']
+];
+const LP_NEED = { 6: () => Math.ceil(WORDS.length * .8), 7: () => 13, 8: () => 13, 9: () => 30 };
+const LP = { p: null, q: null, rep: null, fl: null, sc: null };
+const REC = { mr: null, chunks: [], url: null, on: false, stream: null };
+function lp() { const a = S.lp = S.lp && typeof S.lp === 'object' ? S.lp : {}; ['sg', 'ph', 'sp', 'flu', 't'].forEach(k => { if (!a[k] || typeof a[k] !== 'object') a[k] = {}; }); return a; }
+const lpSt = (kind, id) => ((lp()[kind][id] || {}).st || 0);
+const lpSaid = id => ((lp().sp[id] || {}).said || []).length > 0;
+const spDone = id => lpSt('sp', id) >= 2 && lpSaid(id);
+const fluDays = id => new Set(lp().flu[id] || []).size;
+function lpProg(n) {
+  if (n === 6) return [SIGNS.filter(x => lpSt('sg', x[0]) >= 2).length, SIGNS.length];
+  if (n === 7) return [LPHR.filter(x => lpSt('ph', x[0]) >= 2).length, LPHR.length];
+  if (n === 8) return [SPK.filter(x => spDone(x[0])).length, SPK.length];
+  return [LPFLU.filter(f => fluDays(f[0]) >= 2).length, LPFLU.length];
+}
+const lpOpen = n => n === 6 ? wordsKnown() >= LP_NEED[6]() : lpProg(n - 1)[0] >= LP_NEED[n]();
+const lpDone = n => { const [x, y] = lpProg(n); return n === 9 ? x >= y : x >= LP_NEED[n + 1](); };
+const lpCur = () => { for (let n = 6; n <= 9; n++) if (!lpDone(n)) return lpOpen(n) ? n : n - 1; return 9; };
+const lpPoints = () => SIGNS.filter(x => lpSt('sg', x[0]) >= 2).length * 2 + LPHR.filter(x => lpSt('ph', x[0]) >= 2).length * 2 + SPK.filter(x => spDone(x[0])).length * 3 + LPFLU.reduce((m, f) => m + Math.min(2, fluDays(f[0])) * 4, 0);
+const lpSrc = k => k === 'sg' ? SIGNS : k === 'ph' ? LPHR : SPK;
+const SPKI = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+const MICI = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>';
+const TURTLE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15c0-4 3.5-7 8-7s8 3 8 7H4z"/><path d="M20 13.5h1.5M7 15l-1 2.5M17 15l1 2.5"/></svg>';
+/* ----- Le micro : s'enregistrer et se réécouter. Rien n'est gardé ni envoyé : la voix reste en mémoire le temps de l'exercice. ----- */
+function recClear() { if (REC.url) { try { URL.revokeObjectURL(REC.url); } catch (e) {} } REC.url = null; }
+function recStopTracks() { if (REC.stream) { REC.stream.getTracks().forEach(t => t.stop()); REC.stream = null; } }
+async function recStart() {
+  if (!navigator.mediaDevices || !window.MediaRecorder) { toast('L\'enregistrement n\'est pas disponible sur cet appareil.'); return; }
+  try {
+    recClear(); REC.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    REC.chunks = []; REC.mr = new MediaRecorder(REC.stream);
+    REC.mr.ondataavailable = e => { if (e.data && e.data.size) REC.chunks.push(e.data); };
+    REC.mr.onstop = () => { const b = new Blob(REC.chunks, { type: REC.mr.mimeType || 'audio/mp4' }); REC.url = URL.createObjectURL(b); REC.on = false; recStopTracks(); lpRefresh(); };
+    REC.mr.start(); REC.on = true; lpRefresh();
+    setTimeout(() => { if (REC.on && REC.mr && REC.mr.state === 'recording') REC.mr.stop(); }, 30000);
+  } catch (e) { REC.on = false; recStopTracks(); toast('Autorise le micro pour t\'enregistrer (Réglages de l\'iPhone → Safari → Micro).'); lpRefresh(); }
+}
+function recStop() { if (REC.mr && REC.mr.state === 'recording') REC.mr.stop(); }
+function recPlay() { if (!REC.url) return; try { speechSynthesis.cancel(); } catch (e) {} const a = new Audio(REC.url); a.play().catch(() => {}); }
+const arIn = t => esc(t).replace(/[\u0600-\u06FF\u0750-\u077F\uFE70-\uFEFF]+(?:[ \u00A0]+[\u0600-\u06FF\u0750-\u077F\uFE70-\uFEFF]+)*/g, m => `<span class="arin" lang="ar" dir="rtl">${m}</span>`);
+function lpTop() { render(); requestAnimationFrame(() => { const e = $('.lpq') || (LP.sc ? $('.lphead') : null); if (e) window.scrollTo(0, Math.max(0, e.getBoundingClientRect().top + window.scrollY - 16)); else window.scrollTo(0, 0); }); }
+function lpRefresh() { const y = window.scrollY; render(); window.scrollTo(0, y); }
+function lpRecBox(model) {
+  return `<div class="lprec">
+    <button class="lpb" data-lpsay="${esc(model)}">${SPKI}<span>Écouter</span></button>
+    <button class="lpb" data-lpsay="${esc(model)}" data-slow>${TURTLE}<span>Lentement</span></button>
+    ${REC.on ? `<button class="lpb rec on" data-lprec="stop"><i class="rdot"></i><span>Arrêter</span></button>` : `<button class="lpb rec" data-lprec="start">${MICI}<span>${REC.url ? 'Recommencer' : 'M\'enregistrer'}</span></button>`}
+    ${REC.url && !REC.on ? `<button class="lpb mine" data-lprec="play">${SPKI}<span>Ma voix</span></button>` : ''}
+  </div>`;
+}
+/* ----- Le chemin des paliers 6 à 9 ----- */
+function lpBar(cur) {
+  return `<div class="lppath">${LPP.map(p => { const op = lpOpen(p.k), d = lpDone(p.k), [x, y] = lpProg(p.k);
+    return `<button class="lpstep ${d ? 'ok' : ''} ${op ? '' : 'lock'} ${cur === p.k ? 'cur' : ''}" data-lpp="${p.k}" ${op ? '' : 'aria-disabled="true"'}><i>${d ? ICON.tick : op ? p.k : '·'}</i><b>${p.t}</b><small>${op ? `${x}/${y}` : 'à venir'}</small></button>`; }).join('')}</div>`;
+}
+function lpTodayItem(st) {
+  if (!lpOpen(6)) return '';
+  const n = lpCur(), [x, y] = lpProg(n), P = LPP.find(p => p.k === n);
+  return `<button class="today-item" data-lpgo ${st ? `style="${st}"` : ''}>${miniOrb(x / y, 'arabe', true)}<span><b>Arabe · palier ${n} · ${P.t.toLowerCase()}</b><span class="s">${x} sur ${y}${n === 8 ? ' phrases acquises' : n === 9 ? ' passages fluides' : ' maîtrisés'}</span></span>${ICON.chev}</button>`;
+}
+function vLP() {
+  if (!lpOpen(6)) return `<section class="lplock"><h2>Lire et parler</h2><p class="small muted">Cet onglet s'ouvre quand ta constellation compte ${LP_NEED[6]()} mots maîtrisés. Tu en as ${wordsKnown()}.</p></section>`;
+  let cur = LP.p || lpCur(); if (!lpOpen(cur)) cur = lpCur();
+  const P = LPP.find(p => p.k === cur), [x, y] = lpProg(cur);
+  const head = `${lpBar(cur)}<div class="lphead"><p class="eyebrow" style="margin:0">Palier ${cur}</p><h2 style="margin:2px 0 4px">${P.t}</h2><p class="small muted" style="margin:0">${P.s} · ${x}/${y}${cur < 9 ? ` · palier ${cur + 1} à ${LP_NEED[cur + 1]()}` : ''}</p></div>`;
+  if (LP.q) return head + vLPQuiz();
+  if (LP.rep) return head + vLPRep();
+  if (cur === 9) return head + vLPFlu();
+  if (cur === 8) return head + vLPSpk();
+  return head + vLPList(cur === 6 ? 'sg' : 'ph');
+}
+function vLPList(kind) {
+  const src = lpSrc(kind);
+  const intro = kind === 'sg' ? 'Les petits signes qui changent la lecture d\'un mot. Touche un mot pour l\'écouter et lire l\'explication.' : 'Les phrases de ta journée. Écoute-les, répète-les à voix haute, enregistre-toi, puis teste-toi sur leur sens.';
+  return `<p class="small" style="margin:14px 0 10px">${intro}</p>
+    <div class="row" style="gap:8px;margin-bottom:12px"><button class="btn sm" data-lpq="${kind}" style="flex:1">Je me teste</button>${kind === 'ph' ? '<button class="btn sm ghost" data-lprep="ph" style="flex:1">Écouter et répéter</button>' : ''}</div>
+    <div class="group">${src.map(x => { const s = lpSt(kind, x[0]), ok = s >= 2;
+      return `<button class="cell tap lpcell ${LP.open === x[0] ? 'open' : ''}" data-lpo="${x[0]}"><span class="lpar" lang="ar" dir="rtl">${x[1]}</span><span class="small lpst ${ok ? 'ok' : 'muted'}">${ok ? 'Maîtrisé' : s ? '1/2' : ''}</span></button>
+      ${LP.open === x[0] ? `<div class="lpdet"><p class="lptr">${esc(x[2])}</p><p class="small" style="margin:4px 0 0">${arIn(x[3])}</p>${x[4] ? `<p class="small muted" style="margin:6px 0 0">${arIn(x[4])}</p>` : ''}<button class="lpb" data-lpsay="${esc(x[1])}" style="margin-top:10px">${SPKI}<span>Écouter</span></button></div>` : ''}`; }).join('')}</div>
+    <p class="hint">Une carte est maîtrisée après deux bonnes réponses d'affilée. Celles que tu connais le moins reviennent en premier.</p>`;
+}
+function vLPSpk() {
+  const sc = SPK_SC.map(([id, t, items]) => { const n = items.filter(x => spDone(x[0])).length;
+    return `<button class="cell tap" data-lpsc="${id}"><span class="lbl">${t}</span><span class="small ${n === items.length ? '' : 'muted'}" style="${n === items.length ? 'color:var(--mint)' : ''}">${n}/${items.length}</span>${ICON.chev}</button>`; }).join('');
+  if (LP.sc) { const S0 = SPK_SC.find(s => s[0] === LP.sc), items = S0[2];
+    return `<div class="row between" style="align-items:center;margin-top:14px"><h3 style="margin:0">${S0[1]}</h3><button class="link-btn small" data-lpsc="">Toutes les scènes</button></div>
+      <div class="row" style="gap:8px;margin:10px 0 12px"><button class="btn sm" data-lprep="sp" style="flex:1">Écouter et répéter</button><button class="btn sm ghost" data-lpq="sp" style="flex:1">Comment dit-on ?</button></div>
+      <div class="group">${items.map(x => { const q = lpSt('sp', x[0]) >= 2, s = lpSaid(x[0]);
+        return `<button class="cell tap lpcell ${LP.open === x[0] ? 'open' : ''}" data-lpo="${x[0]}"><span class="lpar" lang="ar" dir="rtl">${x[1]}</span><span class="lpbadges"><i class="${s ? 'on' : ''}" title="Dite à voix haute">${MICI}</i><i class="${q ? 'on' : ''}" title="Maîtrisée au test">${ICON.tick}</i></span></button>
+        ${LP.open === x[0] ? `<div class="lpdet"><p class="lptr">${esc(x[2])}</p><p class="small" style="margin:4px 0 0">${esc(x[3])}</p>${x[4] ? `<p class="small muted" style="margin:6px 0 0">${arIn(x[4])}</p>` : ''}<button class="lpb" data-lpsay="${esc(x[5] || x[1])}" style="margin-top:10px">${SPKI}<span>Écouter</span></button></div>` : ''}`; }).join('')}</div>
+      <p class="hint">Une phrase est acquise quand tu l'as dite à voix haute (micro) et réussie deux fois d'affilée au test (coche).</p>`; }
+  return `<p class="small" style="margin:14px 0 10px">L'arabe littéraire, celui du Coran et des livres, compris partout. Les phrases sont écrites pour toi, au féminin ; la forme pour un homme est indiquée quand elle change.</p>
+    <div class="group">${sc}</div>
+    <p class="hint">Le secret pour parler : écouter, répéter à voix haute, te réécouter. Quelques minutes chaque jour valent mieux qu'une heure une fois par semaine.</p>`;
+}
+/* ----- Écouter et répéter : une phrase à la fois ----- */
+function lpRepList(kind) {
+  const src = kind === 'sp' ? SPK.filter(x => !LP.sc || x.sc === LP.sc) : LPHR;
+  return src.slice().sort((a, b) => (kind === 'sp' ? (lpSaid(a[0]) - lpSaid(b[0])) : 0) || Math.random() - .5).map(x => x[0]);
+}
+function vLPRep() {
+  const r = LP.rep, src = lpSrc(r.kind), id = r.list[r.i], x = src.find(y => y[0] === id);
+  if (!x) return `<section class="qcard lpq" style="text-align:center;margin-top:14px"><p class="eyebrow">Écouter et répéter</p><p style="font:400 2.6rem/1 var(--serif);color:var(--mint);margin:10px 0">${r.good}<small style="font-size:1rem;color:var(--muted)"> / ${r.list.length}</small></p><p class="small">phrases bien dites. Bravo pour ta régularité.</p><button class="btn block" data-lprepx="end" style="margin-top:12px">Terminer</button></section>`;
+  return `<section class="qcard lpq" style="margin-top:14px">
+    <div class="row between"><p class="eyebrow" style="margin:0">Écouter et répéter · ${r.i + 1}/${r.list.length}</p><button class="link-btn small" data-lprepx="end">Arrêter</button></div>
+    <p class="lpbig" lang="ar" dir="rtl">${x[1]}</p>
+    ${r.tr ? `<p class="lptr" style="text-align:center">${esc(x[2])}</p>` : `<button class="link-btn small" data-lprepx="tr" style="display:block;margin:0 auto">Voir la lecture</button>`}
+    <p class="small" style="text-align:center;margin:6px 0 0">${esc(x[3])}</p>
+    ${x[4] ? `<p class="small muted" style="text-align:center;margin:4px 0 0">${arIn(x[4])}</p>` : ''}
+    <ol class="lpsteps"><li>Écoute le modèle, puis lentement.</li><li>Répète à voix haute, deux ou trois fois.</li><li>Enregistre-toi et compare avec le modèle.</li></ol>
+    ${lpRecBox(x[5] || x[1])}
+    <div class="row" style="gap:8px;margin-top:14px"><button class="btn sm" data-lprepx="ok" style="flex:1">Je l'ai bien dite</button><button class="btn sm ghost" data-lprepx="ko" style="flex:1">À retravailler</button></div>
+  </section>`;
+}
+/* ----- Questionnaires ----- */
+function lpQuizStart(kind) {
+  const pool = kind === 'sp' ? SPK.filter(x => !LP.sc || x.sc === LP.sc) : lpSrc(kind);
+  const list = pool.slice().sort((a, b) => lpSt(kind, a[0]) - lpSt(kind, b[0]) || Math.random() - .5).slice(0, Math.min(8, pool.length)).map(x => x[0]);
+  LP.q = { kind, list, i: 0, score: 0, pick: null, opts: null };
+}
+function vLPQuiz() {
+  const q = LP.q, src = lpSrc(q.kind), x = src.find(y => y[0] === q.list[q.i]);
+  const ttl = q.kind === 'sg' ? 'Les signes' : q.kind === 'ph' ? 'Les phrases' : 'Comment dit-on ?';
+  if (!x) return `<section class="qcard lpq" style="text-align:center;margin-top:14px"><p class="eyebrow">${ttl}</p><p style="font:400 2.6rem/1 var(--serif);color:var(--mint);margin:10px 0">${q.score}<small style="font-size:1rem;color:var(--muted)"> / ${q.list.length}</small></p><button class="btn block" data-lpqx="end" style="margin-top:6px">Continuer</button></section>`;
+  const key = q.kind === 'sg' ? 2 : q.kind === 'ph' ? 3 : 1;
+  if (!q.opts) { const pool = q.kind === 'sp' ? SPK : src; q.opts = [x[key], ...pool.filter(y => y[0] !== x[0] && y[key] !== x[key]).sort(() => Math.random() - .5).slice(0, 2).map(y => y[key])].sort(() => Math.random() - .5); }
+  const right = x[key], arOpt = q.kind === 'sp';
+  const shown = q.kind === 'sp' ? `<p class="lpfr">${esc(x[3])}</p>` : `<p class="lpbig" lang="ar" dir="rtl">${x[1]}</p>`;
+  const ask = q.kind === 'sg' ? 'Comment se lit ce mot ?' : q.kind === 'ph' ? 'Que veut dire cette phrase ?' : 'Comment le dis-tu en arabe ?';
+  return `<section class="qcard lpq" style="margin-top:14px"><div class="row between"><p class="eyebrow" style="margin:0">${ttl} · ${q.i + 1}/${q.list.length}</p><button class="link-btn small" data-lpqx="end">Arrêter</button></div>
+    ${shown}<p class="small muted" style="text-align:center;margin:0 0 10px">${ask}</p>
+    <div class="opts">${q.opts.map((o, k) => `<button class="opt ${arOpt ? 'ar-opt' : ''} ${q.pick != null ? (o === right ? 'good' : k === q.pick ? 'bad' : 'dim') : ''}" data-lpqo="${k}" ${q.pick != null ? 'disabled' : ''} ${arOpt ? 'lang="ar" dir="rtl"' : ''}>${esc(o)}</button>`).join('')}</div>
+    ${q.pick != null ? `<div class="lpafter">${q.kind === 'sg' ? `<p class="small" style="margin:0">${arIn(x[3])}</p>` : `<p class="lptr" style="margin:0">${esc(x[2])}</p>${q.kind === 'sp' ? '<p class="small muted" style="margin:4px 0 0">Répète-la à voix haute avant de passer à la suite.</p>' : ''}`}
+      <div class="row" style="gap:8px;margin-top:10px"><button class="lpb" data-lpsay="${esc(x[5] || x[1])}">${SPKI}<span>Écouter</span></button><button class="btn sm" data-lpqx="next" style="margin-left:auto">Suivant</button></div></div>`
+      : (q.kind !== 'sp' ? `<button class="lpb" data-lpsay="${esc(x[1])}" style="margin:12px auto 0;display:flex">${SPKI}<span>Écouter</span></button>` : '')}
+  </section>`;
+}
+/* ----- Palier 9 : lire couramment, chronométré, avec le micro ----- */
+function vLPFlu() {
+  if (LP.fl) { const f = LPFLU.find(y => y[0] === LP.fl.id), txt = f[2].split(',').map(k => LPTXT[k]).join(' ۝ ');
+    const sec = LP.fl.t1 ? Math.round((LP.fl.t1 - LP.fl.t0) / 1000) : 0;
+    return `<section class="qcard lpq" style="margin-top:14px"><div class="row between"><p class="eyebrow" style="margin:0">${f[1]}</p><button class="link-btn small" data-lpf="close">Fermer</button></div>
+      <p class="lpread ${f[0] === 'f5' ? 'dlg' : ''}" lang="ar" dir="rtl">${f[0] === 'f5' ? txt.split('\n').map((l, i) => `<span class="dl ${i % 2 ? 'b' : 'a'}">${esc(l.replace(/^—\s*/, ''))}</span>`).join('') : esc(txt)}</p>
+      ${LP.fl.t0 && !LP.fl.t1 ? `<p class="small muted" style="text-align:center">Lis à voix haute, à ton rythme…</p><button class="btn block" data-lpf="stop">J'ai fini</button>`
+        : LP.fl.t1 ? `<p style="text-align:center;font:400 2rem var(--serif);color:var(--gold);margin:6px 0">${sec} s</p><p class="small muted" style="text-align:center;margin:0 0 10px">Comment ça s'est passé ?</p><div class="row" style="gap:8px"><button class="btn sm" data-lpf="flu" style="flex:1">Fluide</button><button class="btn sm ghost" data-lpf="hes" style="flex:1">Avec des hésitations</button></div>`
+        : `<p class="small muted" style="text-align:center;margin:0 0 10px">Écoute d'abord si tu veux, puis lance le chrono et lis à voix haute. Tu peux aussi t'enregistrer pour te réécouter.</p>${lpRecBox(txt.replace(/—|\n/g, ' '))}<button class="btn block" data-lpf="start" style="margin-top:12px">Commencer la lecture</button>`}
+    </section>`; }
+  return `<p class="small" style="margin:14px 0 10px">Lis chaque passage à voix haute, chronomètre en marche. Il est validé quand tu l'as lu de façon fluide deux jours différents.</p>
+    <div class="group">${LPFLU.map(f => { const n = fluDays(f[0]); return `<button class="cell tap" data-lpf="open" data-id="${f[0]}"><span class="lbl">${f[1]}<small class="muted" style="display:block;font-size:.78rem">${f[3]}</small></span><span class="small ${n >= 2 ? '' : 'muted'}" style="${n >= 2 ? 'color:var(--mint)' : ''}">${n >= 2 ? 'Fluide' : `${n}/2 jours`}</span>${ICON.chev}</button>`; }).join('')}</div>
+    ${lpDone(9) ? '<p class="hint" style="color:var(--mint)">Tu lis l\'arabe couramment, et tu sais te présenter et converser simplement. Continue chaque jour : c\'est la régularité qui fait la langue.</p>' : ''}`;
+}
+/* ----- Paliers franchis ----- */
+function lpCheck() {
+  const a = lp(); for (let n = 6; n <= 9; n++) {
+    if (lpDone(n) && !a.t[n]) { a.t[n] = todayISO(); save();
+      const msg = n < 9 ? [`Palier ${n} franchi · ${LPP[n - 6].t}`, `Le palier ${n + 1} s'ouvre : ${LPP[n - 5].t.toLowerCase()}. ${LPP[n - 5].s}.`] : ['Tu lis couramment', 'Les quatre paliers « Lire et parler » sont franchis. Qu\'Allah t\'ouvre la compréhension de Son Livre.'];
+      setTimeout(() => { lastPt = { x: innerWidth / 2, y: innerHeight * .35 }; reward(25, { big: true, msg }); }, 300); return; }
+  }
+}
+function lpClick(t) {
+  const c = s => t.closest(s); let el; const a = lp();
+  if ((el = c('[data-lpgo]'))) { AV = 'lp'; try { localStorage.setItem('zia-ar-view', AV); } catch (e) {} go('arabe'); return true; }
+  if ((el = c('[data-lpp]'))) { const n = Number(el.dataset.lpp); if (!lpOpen(n)) { toast(`Le palier ${n} s'ouvre à ${LP_NEED[n]()} au palier ${n - 1}.`); return true; } LP.p = n; LP.q = null; LP.rep = null; LP.fl = null; LP.sc = null; LP.open = null; recClear(); lpRefresh(); return true; }
+  if ((el = c('[data-lpsay]'))) { sayAr(el.dataset.lpsay, el.hasAttribute('data-slow') ? .45 : .75); return true; }
+  if ((el = c('[data-lprec]'))) { const v = el.dataset.lprec; if (v === 'start') recStart(); else if (v === 'stop') recStop(); else recPlay(); return true; }
+  if ((el = c('[data-lpo]'))) { const id = el.dataset.lpo; LP.open = LP.open === id ? null : id; lpRefresh(); if (LP.open) { const x = SIGNS.concat(LPHR, SPK).find(y => y[0] === id); if (x) sayAr(x[5] || x[1]); } return true; }
+  if ((el = c('[data-lpsc]'))) { LP.sc = el.dataset.lpsc || null; LP.open = null; lpTop(); return true; }
+  if ((el = c('[data-lpq]'))) { lpQuizStart(el.dataset.lpq); recClear(); lpTop(); return true; }
+  if ((el = c('[data-lpqo]'))) { const q = LP.q, src = lpSrc(q.kind), x = src.find(y => y[0] === q.list[q.i]), k = Number(el.dataset.lpqo), key = q.kind === 'sg' ? 2 : q.kind === 'ph' ? 3 : 1;
+    if (q.pick != null) return true; q.pick = k; const r = a[q.kind][x[0]] = a[q.kind][x[0]] || { st: 0 }, before = r.st || 0;
+    if (q.opts[k] === x[key]) { q.score++; r.st = before + 1; haptic(); if (before === 1) reward(2, { msg: [q.kind === 'sp' ? 'Phrase réussie' : 'Maîtrisé', `${x[1]} · ${x[2]}`] }); } else r.st = 0;
+    save(); lpRefresh(); sayAr(x[5] || x[1]); return true; }
+  if ((el = c('[data-lpqx]'))) { const v = el.dataset.lpqx; if (v === 'next') { LP.q.i++; LP.q.pick = null; LP.q.opts = null; } if (v === 'end') { const s = LP.q.score; LP.q = null; if (s) reward(Math.max(1, Math.round(s / 2))); lpCheck(); } lpRefresh(); return true; }
+  if ((el = c('[data-lprep]'))) { const kind = el.dataset.lprep; LP.rep = { kind, list: lpRepList(kind), i: 0, good: 0, tr: false }; recClear(); lpTop(); return true; }
+  if ((el = c('[data-lprepx]'))) { const v = el.dataset.lprepx, r = LP.rep;
+    if (v === 'tr') r.tr = true;
+    if (v === 'ok' || v === 'ko') { const id = r.list[r.i];
+      if (v === 'ok') { r.good++; if (r.kind === 'sp') { const s = a.sp[id] = a.sp[id] || { st: 0 }; s.said = s.said || []; if (!s.said.includes(todayISO())) { s.said.push(todayISO()); reward(1, { noBonus: true }); } } else reward(1, { noBonus: true }); save(); }
+      r.i++; r.tr = false; recClear(); }
+    if (v === 'end') { LP.rep = null; recClear(); lpCheck(); }
+    lpRefresh(); return true; }
+  if ((el = c('[data-lpf]'))) { const v = el.dataset.lpf;
+    if (v === 'open') { LP.fl = { id: el.dataset.id }; recClear(); lpTop(); return true; }
+    if (v === 'close') { LP.fl = null; recClear(); }
+    if (v === 'start') { LP.fl.t0 = Date.now(); try { speechSynthesis.cancel(); } catch (e) {} }
+    if (v === 'stop') LP.fl.t1 = Date.now();
+    if (v === 'flu' || v === 'hes') { const sec = Math.round((LP.fl.t1 - LP.fl.t0) / 1000);
+      if (v === 'flu') { const L = a.flu[LP.fl.id] = a.flu[LP.fl.id] || []; if (!L.includes(todayISO())) L.push(todayISO()); save(); reward(6, { msg: ['Lecture fluide', `${sec} secondes. Relis-le un autre jour pour le valider.`] }); } else reward(2);
+      LP.fl = null; recClear(); lpCheck(); }
+    lpRefresh(); return true; }
+  return false;
 }
 function alifClick(t) {
   const c = s => t.closest(s); let el;
@@ -3703,7 +4014,7 @@ function vApprZ() {
   <div class="zhero">${ring(sd ? 1 : 0, sd ? '✓' : '30', sd ? 'fait aujourd\'hui' : 'minutes aujourd\'hui', 'mint')}
     <div class="zside"><p class="num" style="font:400 2.4rem/1 var(--serif);color:var(--mint);margin:0">${streak}</p><p class="small muted" style="margin:4px 0 12px">jour${streak > 1 ? 's' : ''} d'affilée</p>
     <button class="btn sm" data-study ${sd ? 'disabled' : ''}>${sd ? 'Bravo' : 'J\'ai étudié 30 min'}</button></div></div>
-  <button class="today-item" data-goto="arabe" style="margin-top:18px">${miniOrb(alKnown(lv) / alPool(lv).length, 'arabe', true)}<span><b>Lire l'arabe · palier ${lv}</b><span class="s">${ALV[lv - 1].t} : ${alKnown(lv)} acquis sur ${alPool(lv).length}</span></span>${ICON.chev}</button>
+  ${lpTodayItem('margin-top:18px') || `<button class="today-item" data-goto="arabe" style="margin-top:18px">${miniOrb(alKnown(lv) / alPool(lv).length, 'arabe', true)}<span><b>Lire l'arabe · palier ${lv}</b><span class="s">${ALV[lv - 1].t} : ${alKnown(lv)} acquis sur ${alPool(lv).length}</span></span>${ICON.chev}</button>`}
   <section><div class="row between" style="align-items:baseline"><h2 style="margin:0">Business et règles islamiques</h2><span class="small muted num">${bizDone()} / ${BIZP.length}</span></div>
     <div class="bar" style="margin-top:10px"><i style="width:${bizDone() / BIZP.length * 100}%;background:var(--mint)"></i></div>
     <div class="bpal">${BIZP.map((p, i) => { const op = bizOpen(i), dn = !!bz().done[i], show = AP.open === i || (AP.open == null && i === cur);
@@ -3991,7 +4302,7 @@ function growValue(k) {
     return n;
   }
   const z = Z();
-  if (k === 'appr') return alPoints() + wordsKnown() * 2 + bizDone() * 10 + Object.keys(z.biz.study).length * 2;
+  if (k === 'appr') return alPoints() + wordsKnown() * 2 + lpPoints() + bizDone() * 10 + Object.keys(z.biz.study).length * 2;
   if (k === 'corps') return z.corps.sessions.length + Math.floor(Object.values(z.corps.food).reduce((m, d) => m + Object.keys(d).length, 0) / 6) + Math.floor((Object.values(z.corps.care).reduce((m, h) => m + h.length, 0) + Object.values(S.body.fitra).reduce((m, h) => m + h.length, 0)) / 3);
   if (k === 'routine') return Object.values(z.routine.log).reduce((m, d) => m + Object.keys(d).length, 0);
   if (k === 'reset') return Object.values(z.reset.w).reduce((m, w) => m + Object.keys(w.c || {}).length + (w.done ? 5 : 0), 0);
@@ -4081,7 +4392,7 @@ ${tjCard()}
       ${new Date().getDay() === 0 || new Date().getDay() === 6 ? (() => { const s = sundayOf(), n = rsDone(s), t = rsItems(s).length; return `<button class="today-item" data-goto="reset">${miniOrb(t ? n / t : 0, 'reset')}<span><b>${new Date().getDay() === 0 ? 'Ton reset, cet après-midi' : 'Demain, ton reset'}</b><span class="s">${n}/${t} cases</span></span>${ICON.chev}</button>`; })() : ''}
       ${(() => { const due = fitraDue(); if (!due.length) return ''; const mx = Math.max(...due.map(([id]) => fitraDays(id))); return `<button class="today-item" data-czgo="soin">${miniOrb(Math.max(0, 1 - mx / 40), 'corps')}<span><b>La fitra : ${due.map(x => x[1].toLowerCase()).join(', ')}</b><span class="s">${mx >= 40 ? 'Les 40 nuits sont dépassées' : `Plus que ${40 - mx} nuit${40 - mx > 1 ? 's' : ''} avant la limite`}</span></span>${ICON.chev}</button>`; })()}
       <button class="today-item" data-goto="cycle">${miniOrb(ci ? Math.min(1, ci.day / ci.len) : 0, 'cycle')}<span><b>${!ci ? 'Commencer le suivi du cycle' : ci.cur ? `Règles · jour ${dBetween(ci.last.start, k) + 1}` : `Jour ${ci.day} du cycle`}</b><span class="s">${!ci ? 'Note le début de tes prochaines règles' : ci.cur ? `${Object.keys(S.cycle.ad[k] || {}).length} adoration${Object.keys(S.cycle.ad[k] || {}).length > 1 ? 's' : ''} aujourd'hui` : ci.left >= 0 ? `Règles dans ${ci.left} jour${ci.left > 1 ? 's' : ''}` : `Règles attendues depuis ${-ci.left} j`}</span></span>${ICON.chev}</button>
-      ${(() => { const lv = alOpen(3) ? 3 : alOpen(2) ? 2 : 1, n = alKnown(lv), t = alPool(lv).length; return `<button class="today-item" data-goto="arabe">${miniOrb(n / t, 'arabe', true)}<span><b>Lire l'arabe · ${ALV[lv - 1].t.toLowerCase()}</b><span class="s">${n} lettre${n > 1 ? 's' : ''} acquise${n > 1 ? 's' : ''} sur ${t}</span></span>${ICON.chev}</button>`; })()}
+      ${lpTodayItem() || ''}${lpOpen(6) ? '' : (() => { const lv = alOpen(3) ? 3 : alOpen(2) ? 2 : 1, n = alKnown(lv), t = alPool(lv).length; return `<button class="today-item" data-goto="arabe">${miniOrb(n / t, 'arabe', true)}<span><b>Lire l'arabe · ${ALV[lv - 1].t.toLowerCase()}</b><span class="s">${n} lettre${n > 1 ? 's' : ''} acquise${n > 1 ? 's' : ''} sur ${t}</span></span>${ICON.chev}</button>`; })()}
     </div>
   </section>
   <div class="tjbottom">${tjFeedback()}</div>`;
@@ -4237,7 +4548,8 @@ function render(animate) {
   if ((tab === 'orbite' || tab === 'foi') && !missedDismissed) setTimeout(missedOverlay, 700);
   if (tab === 'flux') bindFlux();
   if (tab === 'parcours') bindParcours();
-  if (tab === 'foi' && F.view === 'arabe') { if (AV !== 'mots' || !alOpen(5)) drawLQ(); else if (quiz && !quiz.answered) drawQuiz(); else nextQuiz(); }
+  if (tab === 'foi' && F.view === 'arabe') { if (AV === 'lp' && lpOpen(6)) setTimeout(lpCheck, 400); else if (AV !== 'mots' || !alOpen(5)) drawLQ(); else if (quiz && !quiz.answered) drawQuiz(); else nextQuiz(); }
+  if (REC.on && !(tab === 'foi' && F.view === 'arabe' && AV === 'lp')) recStop();
   if (tab === 'argent' && A.view === 'heures') bindDial();
 }
 function setAView(v) { A.view = v; try { localStorage.setItem('zia-argent-view', v); } catch (e) {} }
@@ -4340,6 +4652,7 @@ document.addEventListener('click', e => {
   if (tjClick(t)) return;
   if (themeClick(t)) return;
   if (cycleClick(t)) return;
+  if (lpClick(t)) return;
   if (alifClick(t)) return;
   if (zClick(t)) return;
   if ((el = c('[data-open]'))) { el.dataset.open === 'settings' ? openSettings() : openIdeas(); return; }
